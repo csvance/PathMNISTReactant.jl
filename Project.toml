@@ -1,0 +1,40 @@
+name = "PathMNISTReactant"
+uuid = "096533d6-c3c2-452d-832d-f47e1fae91c7"
+version = "0.1.0"
+authors = ["Carroll Vance"]
+
+[deps]
+Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
+Lux = "b2108857-7c20-44ae-9111-449ecde12c47"
+Luximm = "dd5ee4bc-caca-4b0e-b38f-82888d7e6786"
+MLUtils = "f1d291b0-491e-4a28-83b9-f70985020b54"
+Mmap = "a63ad114-7e13-5084-954f-fe012c677804"
+ParameterSchedulers = "d7d3b36b-41b8-4d0d-a2bf-768c6151755e"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
+ReactantNitro = "641982cc-88f5-4d80-bec4-e68c6a8af0a5"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+ZipArchives = "49080126-0e18-4c2a-b176-c102e4b3760c"
+
+[sources]
+Luximm = {path = "../Luximm.jl"}
+
+[compat]
+Downloads = "1"
+Lux = "1.31"
+Luximm = "0.3"
+MLUtils = "0.4.13"
+Mmap = "1"
+ParameterSchedulers = "0.4"
+Random = "1"
+Reactant = "0.2.290"
+ReactantNitro = "0.1.5"
+Statistics = "1"
+ZipArchives = "2"
+julia = "1.12"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

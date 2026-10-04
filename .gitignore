@@ -1,0 +1,23 @@
+# Data and run artifacts stay out of the repo
+*.npz
+*.u8
+data/
+checkpoints/
+bundles/
+runs/
+*.log
+LocalPreferences.toml
+.env
+.comet.config
+.DS_Store
+*~
+\#*\#
+.#*
+
+# Python benchmark environment
+.venv/
+__pycache__/
+
+# Benchmark logs (machine-local paths) and regenerable HLO dumps
+benchmarks/results/**/*.err
+benchmarks/results/dumps/

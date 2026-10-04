@@ -1,0 +1,2 @@
+[launch]
+threads = "16,1"
