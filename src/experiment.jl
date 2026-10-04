@@ -31,10 +31,12 @@
     batch_size::Int = 16
     "Gradient accumulation steps (read by Nitro by name): an effective batch of 32."
     accum::Int = 2
-    max_epochs::Int = 10
+    max_epochs::Int = 5
 
     "Peak learning rate of the one-cycle schedule (RAdam)."
     max_lr::Float64 = 1e-3
+    "Learning rate of the NeuralODE vector field relative to the rest of the model."
+    node_lr_ratio::Float64 = 1.0
     "Fraction of the run spent warming up to max_lr."
     pct_start::Float64 = 0.3
     "Decoupled weight decay; the NeuralODE vector field is not decayed."

@@ -6,6 +6,8 @@
 ReactantNitro.param_group(::PathMNIST, ks) = (:enc in ks || :dec in ks) ? :node : :default
 
 ReactantNitro.learning_rate(e::PathMNIST) = Float32(e.max_lr)
+# Per-group rates are ratios against the base, so the one-cycle schedule scales both together.
+ReactantNitro.learning_rate(e::PathMNIST, ::Val{:node}) = Float32(e.max_lr * e.node_lr_ratio)
 ReactantNitro.lambda(e::PathMNIST) = Float32(e.weight_decay)
 ReactantNitro.lambda(::PathMNIST, ::Val{:node}) = 0.0f0
 

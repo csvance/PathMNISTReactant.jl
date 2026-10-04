@@ -35,8 +35,8 @@ ensure_dataset_mmapable(PathMNIST(; data_url = URL, data_dir = DATA_DIR))
     @testset "experiment fields" begin
         e = PathMNIST()
         @test ReactantNitro.host_fields(PathMNIST) ==
-              (:data_url, :data_dir, :seed, :batch_size, :accum, :max_epochs, :max_lr, :pct_start,
-               :weight_decay, :aug_rot90, :aug_flip)
+              (:data_url, :data_dir, :seed, :batch_size, :accum, :max_epochs, :max_lr, :node_lr_ratio,
+               :pct_start, :weight_decay, :aug_rot90, :aug_flip)
         @test ReactantNitro.device_fields(PathMNIST) == (:kinetic_weight,)
         @test (e.batch_size, e.accum) == (16, 2)
         @test PathMNIST(; max_epochs = 3).max_epochs == 3
@@ -180,6 +180,7 @@ ensure_dataset_mmapable(PathMNIST(; data_url = URL, data_dir = DATA_DIR))
         @test ReactantNitro.param_group(e, (:head, :cls, :weight)) === :default
         @test ReactantNitro.lambda(e, Val(:node)) == 0
         @test ReactantNitro.lambda(e) ≈ 1.0f-4
+        @test ReactantNitro.learning_rate(PathMNIST(; node_lr_ratio = 0.1), Val(:node)) ≈ 1.0f-4
         s = ReactantNitro.schedules(e).eta(1000)
         @test s(1) ≈ 4.0f-5 && maximum(s.(1:1000)) ≈ 1.0f-3 && s(1000) < 1.0f-8
     end
