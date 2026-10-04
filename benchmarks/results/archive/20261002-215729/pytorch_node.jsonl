@@ -1,0 +1,3 @@
+{"stack": "pytorch", "workload": "node-rk4", "compile": "none", "precision": "tf32", "dims": 32, "hidden": 256, "steps": 100, "batch_size": 128, "params": 16672, "first_step_s": 0.65, "step_ms": 126.309, "steps_per_s": 7.9, "peak_mem_gb": 0.077, "torch": "2.14.0+cu130", "device": "NVIDIA RTX A6000"}
+{"stack": "pytorch", "workload": "node-rk4", "compile": "default", "precision": "tf32", "dims": 32, "hidden": 256, "steps": 100, "batch_size": 128, "params": 16672, "first_step_s": 109.65, "step_ms": 59.666, "steps_per_s": 16.8, "peak_mem_gb": 0.082, "torch": "2.14.0+cu130", "device": "NVIDIA RTX A6000"}
+{"failed": "reduce-overhead", "workload": "node-rk4"}

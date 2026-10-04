@@ -1,0 +1,10 @@
+[project]
+name = "pathmnist-pytorch-bench"
+version = "0.1.0"
+description = "PyTorch Lightning baseline for the PathMNISTReactant training-speed comparison"
+requires-python = ">=3.12"
+dependencies = [
+    "torch",
+    "lightning",
+    "timm",
+]
