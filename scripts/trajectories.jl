@@ -1,9 +1,9 @@
 # Visualize how the NeuralODE head moves a prediction between the 9 classes.
 #
-# The classifier is linear, so a prediction can be read off the ODE state at any time:
-# p(t) = softmax(cls(u(t))). This script loads a trained checkpoint, compiles one extra
-# program that returns p(t) along the RK4 trajectory (separate from `forward`, which
-# returns only the end point), and draws two figures:
+# The logits are dimensions of the ODE state, so a prediction can be read off at any
+# time: p(t) = softmax(z(t)), starting uniform at t = 0. This script loads a trained
+# checkpoint, compiles one extra program that returns p(t) along the RK4 trajectory
+# (separate from `forward`, which returns only the end point), and draws two figures:
 #
 #   nonagon.png   the 9 classes on the corners of a regular 9-gon; each sample's path runs
 #                 from sum_k p_k(0) corner_k to sum_k p_k(1) corner_k, coloured by true class
@@ -32,8 +32,10 @@ function class_trajectory(e, model, ps, st, img)
     pooled, _ = L.norm(pooled, ps.norm, st.norm)
     apply(name, v) = first(H[name](v, ps.head[name], sH[name]))
     f(u) = apply(:dec, apply(:enc, u))
-    probs(u) = softmax(apply(:cls, u); dims = 1)
-    u = apply(:proj, pooled)
+    A = e.aug_dims
+    probs(u) = softmax(u[(A + 1):end, :]; dims = 1)       # the logits live in the state
+    a0 = apply(:proj, pooled)
+    u = vcat(a0, zeros(eltype(a0), e.num_classes) .* a0[1:1, :])
     T, K = eltype(u), e.node_steps
     dt = one(T) / T(K)
     path = [probs(u)]
@@ -58,7 +60,7 @@ function nonagon(P, labels; path)
     fig = Figure(size = (720, 720))
     ax = Axis(fig[1, 1]; aspect = DataAspect(), title = "Class probability along the ODE trajectory")
     hidedecorations!(ax); hidespines!(ax)
-    lines!(ax, [corner.(1:K); corner(1)]; color = :gray80)
+    lines!(ax, [corner.(1:K); [corner(1)]]; color = :gray80)
     for n in axes(P, 2)
         pts = [pos(view(P, :, n, t)) for t in axes(P, 3)]
         lines!(ax, pts; color = (colors[labels[n]], 0.35), linewidth = 1)
@@ -80,8 +82,10 @@ function flows(P, tiles, labels; path)
     fig = Figure(size = (760, 200 * N))
     for n in 1:N
         img = tiles[:, :, :, n]
+        pred = argmax(view(P, :, n, size(P, 3)))
         ax_i = Axis(fig[n, 1]; aspect = DataAspect(), yreversed = true,
-            title = "true: $(CLASS_NAMES[labels[n]])", titlesize = 12)
+            title = "true: $(CLASS_NAMES[labels[n]])\npred: $(CLASS_NAMES[pred])", titlesize = 12,
+            titlecolor = pred == labels[n] ? :black : :firebrick)
         hidedecorations!(ax_i); hidespines!(ax_i)
         image!(ax_i, [RGBf(img[x, y, 1] / 255, img[x, y, 2] / 255, img[x, y, 3] / 255)
                       for x in axes(img, 1), y in axes(img, 2)])

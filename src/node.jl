@@ -21,35 +21,38 @@ function rk4(f, u, steps::Integer)
     return (; u, energy)
 end
 
-# A small random init for the classifier: N(0, 0.01²).
-small_init(rng, dims...) = 0.01f0 .* randn(rng, Float32, dims...)
-
 """
     node_head(e::PathMNIST, width)
 
-The classifier head: project the pooled backbone features into the ODE state, integrate
-an MLP vector field (encoder, tanh, decoder) with RK4, and classify the final state.
-Returns the logits with two per-sample diagnostics of the dynamics, each `(1, N)`: the
-trajectory's kinetic energy, which the loss penalizes, and how far the state moved,
-`|u(1) - u(0)| / |u(0)|`.
+The classifier head, an augmented NeuralODE whose state carries its own logits. The state
+is `[a; z]`: `a` has `e.aug_dims` dimensions predicted from the pooled backbone features,
+and `z` has one dimension per class and always starts at zero. An MLP vector field
+(encoder, tanh, decoder) moves both with RK4, and the logits are `z(1)`, read directly
+with no classifier layer. So every prediction starts uniform and only the flow can carry
+it to a class.
 
-The decoder starts at zero, so du/dt = 0 at initialization and the ODE begins as the
-identity: training starts from the backbone's features, and the dynamics grow from
-there. The classifier starts small, so the first logits are near uniform.
+The decoder starts at zero, so at initialization du/dt = 0, the logits stay at zero, and
+the first loss is exactly log(num_classes); the dynamics grow from there.
+
+Returns the logits with two per-sample diagnostics of the dynamics, each `(1, N)`: the
+trajectory's kinetic energy, which the loss can penalize, and how far the state moved,
+`|u(1) - u(0)| / |u(0)|`.
 """
 function node_head(e::PathMNIST, width::Integer)
-    # Captured by the closure rather than passed to @compact, which would put it in the
+    # Captured by the closure rather than passed to @compact, which would put them in the
     # layer's state.
-    steps = e.node_steps
+    steps, A, K = e.node_steps, e.aug_dims, e.num_classes
+    D = A + K
     return @compact(
-        proj = Dense(width => e.node_dims),
-        enc = Dense(e.node_dims => e.node_hidden, tanh),
-        dec = Dense(e.node_hidden => e.node_dims; init_weight = zeros32, init_bias = zeros32),
-        cls = Dense(e.node_dims => e.num_classes; init_weight = small_init),
+        proj = Dense(width => A),
+        enc = Dense(D => e.node_hidden, tanh),
+        dec = Dense(e.node_hidden => D; init_weight = zeros32, init_bias = zeros32),
     ) do pooled                            # (width, N)
-        u0 = proj(pooled)
+        a0 = proj(pooled)
+        # z(0) = 0, built by broadcasting so it is a constant under trace as well as eagerly.
+        u0 = vcat(a0, zeros(eltype(a0), K) .* a0[1:1, :])
         (; u, energy) = rk4(u -> dec(enc(u)), u0, steps)
         motion = sqrt.(sum(abs2, u .- u0; dims = 1) ./ sum(abs2, u0; dims = 1))
-        @return (; logits = cls(u), energy, motion)
+        @return (; logits = u[(A + 1):D, :], energy, motion)
     end
 end

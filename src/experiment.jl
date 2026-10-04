@@ -10,8 +10,9 @@
     "LayerNorm on the pooled features before the head. ConvNeXt's timm head has one; BiT
     ResNetV2 already ends in a norm and its head is a bare linear layer, so set false for it."
     head_norm::GraphConst{Bool} = true
-    "ODE state dimension: the pooled features are projected to it."
-    node_dims::GraphConst{Int} = 64
+    "Augmented ODE state dimensions, predicted from the pooled features; the state also
+    carries one logit dimension per class, starting at zero."
+    aug_dims::GraphConst{Int} = 32
     "Hidden width of the ODE vector field (encoder, tanh, decoder)."
     node_hidden::GraphConst{Int} = 256
     "RK4 steps over t in [0, 1]. 0 replaces the NeuralODE head with one linear layer."

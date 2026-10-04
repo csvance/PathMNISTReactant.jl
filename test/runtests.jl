@@ -133,15 +133,16 @@ ensure_dataset_mmapable(PathMNIST(; data_url = URL, data_dir = DATA_DIR))
 
     @testset "model" begin
         model, ps, st = ReactantNitro.build_model(PathMNIST(), Xoshiro(0))
-        @test Lux.parameterlength(ps) == 27_949_385
+        @test Lux.parameterlength(ps) == 27_912_393
         @test keys(ps) == (:backbone, :norm, :head)
-        @test keys(ps.head) == (:proj, :enc, :dec, :cls)
+        @test keys(ps.head) == (:proj, :enc, :dec)
         fresh, _ = Lux.setup(Xoshiro(0), model)
         @test fresh.head == ps.head                                     # head left at init
         y, _ = model(rand(Xoshiro(2), UInt8, 224, 224, 3, 2), ps, Lux.testmode(st))
         @test size(y.logits) == (9, 2) && all(isfinite, y.logits)
-        # The decoder starts at zero: no dynamics, so no energy and no motion.
-        @test all(iszero, y.energy) && all(iszero, y.motion)
+        # The decoder starts at zero: no dynamics, so no energy, no motion, and the logits,
+        # which live in the state and start at zero, stay there: a uniform first prediction.
+        @test all(iszero, y.energy) && all(iszero, y.motion) && all(iszero, y.logits)
 
         # node_steps = 0, the vision benchmarks' model: one linear head, as before
         linear, ps0, _ = ReactantNitro.build_model(PathMNIST(; node_steps = 0), Xoshiro(0))
