@@ -1,0 +1,5 @@
+[deps]
+ReactantServerClient = "df172679-9d9b-4a02-a92c-27cb5f9e1c5c"
+
+[compat]
+ReactantServerClient = "1"

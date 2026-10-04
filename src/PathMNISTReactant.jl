@@ -17,6 +17,7 @@ include("node.jl")         # RK4 and the NeuralODE head
 include("model.jl")        # build_model: Luximm backbone + head via @compact
 include("train.jl")        # forward, loss, and metrics
 include("optim.jl")        # RAdam, decay, one-cycle schedule, checkpoint selection
+include("export.jl")       # the served program's inputs and outputs
 include("augment.jl")      # the 8 orientations of a square tile
 include("data.jl")         # memory-mapped splits and build_data
 include("dataset.jl")      # download and one-time .npz -> flat .u8 conversion
