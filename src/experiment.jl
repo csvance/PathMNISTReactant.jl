@@ -20,6 +20,9 @@
     "Weight of the kinetic-energy penalty on the ODE's trajectory (Finlay et al., 2020).
     Off by default; a traced input, so turning it on or scheduling it recompiles nothing."
     kinetic_weight::Device{Float32} = 0.0f0
+    "Label smoothing ε for the training loss: the target is 1 - ε on the true class plus ε / K
+    on every class. A traced input, so changing it recompiles nothing."
+    label_smoothing::Device{Float32} = 0.0f0
 
     "Where the archive comes from on first use (MedMNIST+ on Zenodo)."
     data_url::String = "https://zenodo.org/records/10519652/files/pathmnist_224.npz?download=1"
@@ -41,6 +44,9 @@
     pct_start::Float64 = 0.3
     "Decoupled weight decay; the NeuralODE vector field is not decayed."
     weight_decay::Float64 = 1e-4
+    "Global gradient-norm clipping threshold; 0 turns it off. The HSV colour jitter diverged
+    without it during the warm-up to max_lr."
+    grad_clip::Float64 = 1.0
 
     "Augmentation: random 90° rotations (k = 0:3)."
     aug_rot90::Bool = true

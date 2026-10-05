@@ -10,6 +10,7 @@ ReactantNitro.learning_rate(e::PathMNIST) = Float32(e.max_lr)
 ReactantNitro.learning_rate(e::PathMNIST, ::Val{:node}) = Float32(e.max_lr * e.node_lr_ratio)
 ReactantNitro.lambda(e::PathMNIST) = Float32(e.weight_decay)
 ReactantNitro.lambda(::PathMNIST, ::Val{:node}) = 0.0f0
+ReactantNitro.gradient_clip_norm(e::PathMNIST) = Float32(e.grad_clip)
 
 # No decay on biases or normalization scales and shifts. Nitro's default before 0.2.0 only
 # excluded 1-D leaves, and Lux stores LayerNorm's affine parameters as (1, 1, C, 1) in the

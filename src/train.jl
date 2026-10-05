@@ -2,18 +2,22 @@
 ReactantNitro.forward(e::PathMNIST, model, ps, st; img) = Lux.apply(model, img, ps, st)
 
 # Mean cross-entropy over the batch. Labels arrive as 1-based integers and are
-# one-hot encoded inside the traced program, so batches stay small.
-function cross_entropy(e::PathMNIST, logits, label)
+# one-hot encoded inside the traced program, so batches stay small. With `smoothing`
+# ε the target is (1 - ε) on the true class and ε / K spread over all K classes.
+function cross_entropy(e::PathMNIST, logits, label; smoothing = 0.0f0)
     onehot = reshape(1:e.num_classes, :, 1) .== reshape(label, 1, :)
-    return -mean(sum(onehot .* logsoftmax(logits; dims = 1); dims = 1))
+    target = (1 - smoothing) .* onehot .+ smoothing / e.num_classes
+    return -mean(sum(target .* logsoftmax(logits; dims = 1); dims = 1))
 end
 
 # The NeuralODE head returns its logits with the trajectory's kinetic energy, which is
 # penalized (Finlay et al., 2020); a linear head (node_steps = 0) returns bare logits.
 # One method per hook: Nitro reads the batch fields a hook needs from its keywords.
+# Label smoothing applies to the training loss only; `val_loss` stays plain cross-entropy.
 function ReactantNitro.loss(e::PathMNIST, out; label)
-    out isa NamedTuple || return cross_entropy(e, out, label)
-    return cross_entropy(e, out.logits, label) + e.kinetic_weight * mean(out.energy)
+    ε = e.label_smoothing
+    out isa NamedTuple || return cross_entropy(e, out, label; smoothing = ε)
+    return cross_entropy(e, out.logits, label; smoothing = ε) + e.kinetic_weight * mean(out.energy)
 end
 
 # Per training step, on the device: what the dynamics are doing, logged for free.
