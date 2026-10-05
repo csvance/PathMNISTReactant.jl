@@ -11,7 +11,7 @@ ReactantNitro.learning_rate(e::PathMNIST, ::Val{:node}) = Float32(e.max_lr * e.n
 ReactantNitro.lambda(e::PathMNIST) = Float32(e.weight_decay)
 ReactantNitro.lambda(::PathMNIST, ::Val{:node}) = 0.0f0
 
-# No decay on biases or normalization scales and shifts. Nitro's default before 0.1.7 only
+# No decay on biases or normalization scales and shifts. Nitro's default before 0.2.0 only
 # excluded 1-D leaves, and Lux stores LayerNorm's affine parameters as (1, 1, C, 1) in the
 # backbone and (C, 1) in the head, so they were decayed. Exclude a leaf whose name is a bias or
 # a norm `scale` (Lux's norm layers all use those names), or that has at most one dimension
