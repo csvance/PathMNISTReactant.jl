@@ -26,10 +26,14 @@ function class_trajectory(e, model, ps, st, img)
     sH = st.head
     μ = reshape(collect(e.pixel_mean), 1, 1, 3, 1)
     σ = reshape(collect(e.pixel_std), 1, 1, 3, 1)
-    x = (to_float32(img) .- μ) ./ σ
-    feats, _ = L.backbone(x, ps.backbone, st.backbone)
+    x01 = to_float32(img)
+    feats, _ = L.backbone((x01 .- μ) ./ σ, ps.backbone, st.backbone)
     pooled = dropdims(mean(feats; dims = (1, 2)); dims = (1, 2))
     pooled, _ = L.norm(pooled, ps.norm, st.norm)
+    if e.wavelet_levels > 0
+        w, _ = L.wnorm(PathMNISTReactant.wavelet_features(x01, e.wavelet_levels), ps.wnorm, st.wnorm)
+        pooled = vcat(pooled, w)
+    end
     apply(name, v) = first(H[name](v, ps.head[name], sH[name]))
     f(u) = apply(:dec, apply(:enc, u))
     A = e.aug_dims
