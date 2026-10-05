@@ -46,4 +46,10 @@
     aug_rot90::Bool = true
     "Augmentation: random mirror. With aug_rot90, covers all 8 orientations."
     aug_flip::Bool = true
+    "Augmentation: random hue shift, up to this fraction of a turn either way (0.05 is ±18°)."
+    aug_hue::Float64 = 0.05
+    "Augmentation: random saturation scale, by a factor in [1 - aug_sat, 1 + aug_sat]."
+    aug_sat::Float64 = 0.3
+    "Augmentation: random value (brightness) scale, by a factor in [1 - aug_val, 1 + aug_val]."
+    aug_val::Float64 = 0.2
 end
