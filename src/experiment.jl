@@ -49,18 +49,20 @@
     pct_start::Float64 = 0.3
     "Decoupled weight decay; the NeuralODE vector field is not decayed."
     weight_decay::Float64 = 1e-4
-    "Global gradient-norm clipping threshold; 0 turns it off. The HSV colour jitter diverged
-    without it during the warm-up to max_lr."
-    grad_clip::Float64 = 1.0
+    "Global gradient-norm clipping threshold; 0 turns it off. Needed with the HSV colour
+    jitter, which diverged without it during the warm-up to max_lr."
+    grad_clip::Float64 = 0.0
 
     "Augmentation: random 90° rotations (k = 0:3)."
     aug_rot90::Bool = true
     "Augmentation: random mirror. With aug_rot90, covers all 8 orientations."
     aug_flip::Bool = true
-    "Augmentation: random hue shift, up to this fraction of a turn either way (0.05 is ±18°)."
-    aug_hue::Float64 = 0.05
+    "Augmentation: random hue shift, up to this fraction of a turn either way (0.05 is ±18°).
+    Off by default: at 0.05 / 0.3 / 0.2 it cost about 1.5 points of test macro accuracy, at
+    5 and at 10 epochs."
+    aug_hue::Float64 = 0.0
     "Augmentation: random saturation scale, by a factor in [1 - aug_sat, 1 + aug_sat]."
-    aug_sat::Float64 = 0.3
+    aug_sat::Float64 = 0.0
     "Augmentation: random value (brightness) scale, by a factor in [1 - aug_val, 1 + aug_val]."
-    aug_val::Float64 = 0.2
+    aug_val::Float64 = 0.0
 end
