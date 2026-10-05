@@ -22,7 +22,7 @@ include(joinpath(@__DIR__, "..", "scripts", "trajectories.jl"))   # class_trajec
 softmax_cols(z) = (e = exp.(z .- maximum(z; dims = 1)); e ./ sum(e; dims = 1))
 
 # The terminal width the tables were captured at, so the text blocks keep their layout.
-capture(f) = sprint(f; context = IOContext(stdout, :displaysize => (60, 140), :color => false))
+capture(f) = sprint(f; context = IOContext(stdout, :displaysize => (60, 104), :color => false)) * "\n"
 
 function blog_data(nitro, out; n_traj = 256)
     mkpath(out)
