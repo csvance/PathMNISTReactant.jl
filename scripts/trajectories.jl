@@ -31,7 +31,8 @@ function class_trajectory(e, model, ps, st, img)
     pooled = dropdims(mean(feats; dims = (1, 2)); dims = (1, 2))
     pooled, _ = L.norm(pooled, ps.norm, st.norm)
     if e.wavelet_levels > 0
-        w, _ = L.wnorm(PathMNISTReactant.wavelet_features(x01, e.wavelet_levels), ps.wnorm, st.wnorm)
+        xw = e.wavelet_space === :hed ? PathMNISTReactant.hed_density(x01) : x01
+        w, _ = L.wnorm(PathMNISTReactant.wavelet_features(xw, e.wavelet_levels), ps.wnorm, st.wnorm)
         pooled = vcat(pooled, w)
     end
     apply(name, v) = first(H[name](v, ps.head[name], sH[name]))

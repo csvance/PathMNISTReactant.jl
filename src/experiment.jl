@@ -15,6 +15,11 @@
     diagonal) per colour channel, LayerNormed and concatenated to the pooled features. 0 is
     off; 5 levels on a 224 px tile span about 1 to 16 µm and add 30 features."
     wavelet_levels::GraphConst{Int} = 0
+    "Colour space the wavelet branch works in: :rgb, or :hed for the haematoxylin and eosin
+    stain densities (Ruifrok and Johnston colour deconvolution), so the texture features
+    depend on how much stain there is rather than on each lab's shade of it. :hed has two
+    channels, so 5 levels add 20 features instead of 30."
+    wavelet_space::GraphConst{Symbol} = :rgb
     "Augmented ODE state dimensions, predicted from the pooled features; the state also
     carries one logit dimension per class, starting at zero."
     aug_dims::GraphConst{Int} = 32

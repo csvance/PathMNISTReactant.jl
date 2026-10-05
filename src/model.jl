@@ -30,6 +30,19 @@ function wavelet_features(x, levels)
     return reduce(vcat, out)
 end
 
+# Haematoxylin and eosin densities from RGB in [0, 1], by Ruifrok and Johnston's colour
+# deconvolution (the matrix scikit-image's rgb2hed uses): optical density -log(I) per channel,
+# then the inverse of the stain matrix whose rows are the H, E and DAB colours in OD space.
+# Returns (W, H, 2, N): the H and E channels, clipped at zero.
+const RGB_FROM_HED = Float32[0.65 0.70 0.29; 0.07 0.99 0.11; 0.27 0.57 0.78]
+const HE_FROM_OD = Float32.(inv(Float64.(RGB_FROM_HED))[:, 1:2])   # (3 RGB, 2 stains)
+function hed_density(x01)
+    od = -log.(max.(x01, 1.0f-3))                        # (W, H, 3, N)
+    r, g, b = od[:, :, 1:1, :], od[:, :, 2:2, :], od[:, :, 3:3, :]
+    stain(k) = max.(r .* HE_FROM_OD[1, k] .+ g .* HE_FROM_OD[2, k] .+ b .* HE_FROM_OD[3, k], 0.0f0)
+    return cat(stain(1), stain(2); dims = 3)
+end
+
 function ReactantNitro.build_model(e::PathMNIST, rng)
     # num_classes = 0 drops the ImageNet classifier and returns the last
     # feature map. prefix = (:backbone,) points the weight loader at the
@@ -42,8 +55,9 @@ function ReactantNitro.build_model(e::PathMNIST, rng)
     μ = reshape(collect(e.pixel_mean), 1, 1, 3, 1)
     σ = reshape(collect(e.pixel_std), 1, 1, 3, 1)
 
-    levels = e.wavelet_levels
-    nw = 2 * 3 * levels                    # wavelet features: 2 per level per channel
+    levels, space = e.wavelet_levels, e.wavelet_space
+    space in (:rgb, :hed) || throw(ArgumentError("wavelet_space must be :rgb or :hed, got $(repr(space))"))
+    nw = 2 * (space === :hed ? 2 : 3) * levels   # wavelet features: 2 per level per channel
     model = @compact(
         backbone = backbone,
         norm = e.head_norm ? LayerNorm((width,)) : NoOpLayer(),
@@ -55,7 +69,7 @@ function ReactantNitro.build_model(e::PathMNIST, rng)
         feats = backbone((x01 .- μ) ./ σ)  # (W/32, H/32, width, N)
         pooled = norm(dropdims(mean(feats; dims = (1, 2)); dims = (1, 2)))
         if levels > 0                      # texture statistics beside the backbone
-            pooled = vcat(pooled, wnorm(wavelet_features(x01, levels)))
+            pooled = vcat(pooled, wnorm(wavelet_features(space === :hed ? hed_density(x01) : x01, levels)))
         end
         @return head(pooled)               # (num_classes, N) logits
     end
