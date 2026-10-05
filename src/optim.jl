@@ -13,13 +13,14 @@ ReactantNitro.lambda(::PathMNIST, ::Val{:node}) = 0.0f0
 
 # No decay on biases or normalization scales and shifts. Nitro's default before 0.2.0 only
 # excluded 1-D leaves, and Lux stores LayerNorm's affine parameters as (1, 1, C, 1) in the
-# backbone and (C, 1) in the head, so they were decayed. Exclude a leaf whose name is a bias or
-# a norm `scale` (Lux's norm layers all use those names), or that has at most one dimension
-# larger than 1.
+# backbone and (C, 1) in the head, so they were decayed. Exclude a leaf when its name is a bias
+# or a norm `scale` (Lux's norm layers all use those names), when the layer holding it is named
+# like a norm (`norm`, `stem_norm`, ...), or when it has at most one dimension larger than 1.
 function ReactantNitro.no_decay(::PathMNIST, ks, x)
-    k = last(ks)
+    k, parent = last(ks), length(ks) >= 2 ? ks[end - 1] : nothing
     named = k isa Symbol && (occursin("bias", String(k)) || k === :scale)
-    return named || count(>(1), size(x)) <= 1
+    in_norm = parent isa Symbol && occursin("norm", lowercase(String(parent)))
+    return named || in_norm || count(>(1), size(x)) <= 1
 end
 
 # PyTorch OneCycleLR's defaults, mapped argument by argument: start at max_lr / 25,
