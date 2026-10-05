@@ -15,38 +15,41 @@ function dihedral(x::AbstractArray{<:Any,3}, k::Integer, mirror::Bool)
 end
 
 """
+    hsv_pixel(r, g, b, dh, s, v) -> NTuple{3,UInt8}
+
+One pixel of the HSV jitter: to Float32, to HSV, shift hue by `dh` (a fraction of a
+full turn) and scale saturation by `s` and value by `v`, then back to `UInt8`. A
+pixel with no saturation (the white background) has no hue to shift, so it only
+changes in brightness.
+"""
+@inline function hsv_pixel(r::UInt8, g::UInt8, b::UInt8, dh::Float32, s::Float32, v::Float32)
+    r, g, b = r / 255.0f0, g / 255.0f0, b / 255.0f0
+    hi, lo = max(r, g, b), min(r, g, b)
+    c = hi - lo
+    h = c == 0 ? 0.0f0 :
+        hi == r ? mod((g - b) / c, 6.0f0) / 6 :
+        hi == g ? ((b - r) / c + 2) / 6 : ((r - g) / c + 4) / 6
+    sat = hi == 0 ? 0.0f0 : c / hi
+    h, sat, val = mod(h + dh, 1.0f0), min(sat * s, 1.0f0), min(hi * v, 1.0f0)
+    c = val * sat
+    hp = 6h
+    x = c * (1 - abs(mod(hp, 2.0f0) - 1))
+    r, g, b = hp < 1 ? (c, x, 0.0f0) : hp < 2 ? (x, c, 0.0f0) : hp < 3 ? (0.0f0, c, x) :
+              hp < 4 ? (0.0f0, x, c) : hp < 5 ? (x, 0.0f0, c) : (c, 0.0f0, x)
+    m = val - c
+    # Clamped first, since unsafe_trunc is undefined outside UInt8; + 0.5 rounds.
+    q(u) = unsafe_trunc(UInt8, 255 * clamp(u + m, 0.0f0, 1.0f0) + 0.5f0)
+    return (q(r), q(g), q(b))
+end
+
+"""
     hsv_jitter(x, dh, s, v) -> Array{UInt8,3}
 
-Shift hue by `dh` (a fraction of a full turn) and scale saturation by `s` and value
-by `v`, per pixel of a `(W, H, C)` RGB tile in `UInt8`. Pixels with no saturation
-(the white background, gray debris) have no hue to shift, so they only change in
-brightness.
+[`hsv_pixel`](@ref) broadcast over a `(W, H, C)` RGB tile in `UInt8`.
 """
 function hsv_jitter(x::AbstractArray{UInt8,3}, dh::Real, s::Real, v::Real)
-    y = similar(x, UInt8, size(x))
-    dh, s, v = Float32(dh), Float32(s), Float32(v)
-    @inbounds for j in axes(x, 2), i in axes(x, 1)
-        r, g, b = x[i, j, 1] / 255.0f0, x[i, j, 2] / 255.0f0, x[i, j, 3] / 255.0f0
-        hi, lo = max(r, g, b), min(r, g, b)
-        c = hi - lo
-        # RGB to HSV, hue in [0, 1)
-        h = c == 0 ? 0.0f0 :
-            hi == r ? mod((g - b) / c, 6.0f0) / 6 :
-            hi == g ? ((b - r) / c + 2) / 6 : ((r - g) / c + 4) / 6
-        sat = hi == 0 ? 0.0f0 : c / hi
-        h, sat, val = mod(h + dh, 1.0f0), min(sat * s, 1.0f0), min(hi * v, 1.0f0)
-        # and back
-        c = val * sat
-        hp = 6h
-        xx = c * (1 - abs(mod(hp, 2.0f0) - 1))
-        r, g, b = hp < 1 ? (c, xx, 0.0f0) : hp < 2 ? (xx, c, 0.0f0) : hp < 3 ? (0.0f0, c, xx) :
-                  hp < 4 ? (0.0f0, xx, c) : hp < 5 ? (xx, 0.0f0, c) : (c, 0.0f0, xx)
-        m = val - c
-        y[i, j, 1] = round(UInt8, 255 * clamp(r + m, 0.0f0, 1.0f0))
-        y[i, j, 2] = round(UInt8, 255 * clamp(g + m, 0.0f0, 1.0f0))
-        y[i, j, 3] = round(UInt8, 255 * clamp(b + m, 0.0f0, 1.0f0))
-    end
-    return y
+    px = hsv_pixel.(view(x, :, :, 1), view(x, :, :, 2), view(x, :, :, 3), Float32(dh), Float32(s), Float32(v))
+    return cat(getindex.(px, 1), getindex.(px, 2), getindex.(px, 3); dims = 3)
 end
 
 """
