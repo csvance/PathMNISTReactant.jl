@@ -30,14 +30,16 @@ changes in brightness.
         hi == r ? mod((g - b) / c, 6.0f0) / 6 :
         hi == g ? ((b - r) / c + 2) / 6 : ((r - g) / c + 4) / 6
     sat = hi == 0 ? 0.0f0 : c / hi
-    h, sat, val = mod(h + dh, 1.0f0), min(sat * s, 1.0f0), min(hi * v, 1.0f0)
+    # Saturation and value are clipped to [0, 1] here too, so a scale factor of any sign stays in range.
+    h, sat, val = mod(h + dh, 1.0f0), clamp(sat * s, 0.0f0, 1.0f0), clamp(hi * v, 0.0f0, 1.0f0)
     c = val * sat
     hp = 6h
     x = c * (1 - abs(mod(hp, 2.0f0) - 1))
     r, g, b = hp < 1 ? (c, x, 0.0f0) : hp < 2 ? (x, c, 0.0f0) : hp < 3 ? (0.0f0, c, x) :
               hp < 4 ? (0.0f0, x, c) : hp < 5 ? (x, 0.0f0, c) : (c, 0.0f0, x)
     m = val - c
-    # Clamped first, since unsafe_trunc is undefined outside UInt8; + 0.5 rounds.
+    # Clipped to [0, 1] before scaling, so unsafe_trunc only sees [0.5, 255.5] and never
+    # wraps; the + 0.5 makes the truncation round to nearest.
     q(u) = unsafe_trunc(UInt8, 255 * clamp(u + m, 0.0f0, 1.0f0) + 0.5f0)
     return (q(r), q(g), q(b))
 end
