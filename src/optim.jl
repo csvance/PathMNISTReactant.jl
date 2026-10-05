@@ -11,6 +11,17 @@ ReactantNitro.learning_rate(e::PathMNIST, ::Val{:node}) = Float32(e.max_lr * e.n
 ReactantNitro.lambda(e::PathMNIST) = Float32(e.weight_decay)
 ReactantNitro.lambda(::PathMNIST, ::Val{:node}) = 0.0f0
 
+# No decay on biases or normalization scales and shifts. Nitro's default before 0.1.7 only
+# excluded 1-D leaves, and Lux stores LayerNorm's affine parameters as (1, 1, C, 1) in the
+# backbone and (C, 1) in the head, so they were decayed. Exclude a leaf whose name is a bias or
+# a norm `scale` (Lux's norm layers all use those names), or that has at most one dimension
+# larger than 1.
+function ReactantNitro.no_decay(::PathMNIST, ks, x)
+    k = last(ks)
+    named = k isa Symbol && (occursin("bias", String(k)) || k === :scale)
+    return named || count(>(1), size(x)) <= 1
+end
+
 # PyTorch OneCycleLR's defaults, mapped argument by argument: start at max_lr / 25,
 # end at max_lr / 25 / 1e4, cosine annealing.
 ReactantNitro.schedules(e::PathMNIST) = (;
