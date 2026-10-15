@@ -2,7 +2,7 @@
 
 julia_version = "1.12.7"
 manifest_format = "2.1"
-project_hash = "a943eeb89a963b62093ac2f76a5868d51a806484"
+project_hash = "cc911c2afef59619d294e6a9552c4c8805f7faba"
 
 [[deps.ADTypes]]
 deps = ["PrecompileTools"]
@@ -553,18 +553,6 @@ version = "1.10.0"
     [deps.JSON.weakdeps]
     ArrowTypes = "31f734f8-188a-4ce0-8406-c8a06bd891cd"
 
-[[deps.JSON3]]
-deps = ["Dates", "Mmap", "Parsers", "PrecompileTools", "StructTypes", "UUIDs"]
-git-tree-sha1 = "411eccfe8aba0814ffa0fdf4860913ed09c34975"
-uuid = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
-version = "1.14.3"
-
-    [deps.JSON3.extensions]
-    JSON3ArrowExt = ["ArrowTypes"]
-
-    [deps.JSON3.weakdeps]
-    ArrowTypes = "31f734f8-188a-4ce0-8406-c8a06bd891cd"
-
 [[deps.JuliaSyntaxHighlighting]]
 deps = ["StyledStrings"]
 uuid = "ac6e5ff7-fb65-4e79-a425-ec3bc9c03011"
@@ -813,7 +801,9 @@ version = "1.15.9"
 
 [[deps.Luximm]]
 deps = ["Downloads", "HDF5", "LinearAlgebra", "Lux", "NNlib", "Random", "SafeTensors", "Statistics"]
-path = "../Luximm.jl"
+git-tree-sha1 = "066a021a0d0ed584e6543aa9e733e53ff612116f"
+repo-rev = "4bda92a3ddbdf5ec59b9f1ea2c5e3d154991411a"
+repo-url = "https://github.com/csvance/Luximm.jl"
 uuid = "dd5ee4bc-caca-4b0e-b38f-82888d7e6786"
 version = "0.3.0"
 
@@ -1045,7 +1035,7 @@ uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 version = "2.8.8"
 
 [[deps.PathMNISTReactant]]
-deps = ["Downloads", "Lux", "Luximm", "MLUtils", "Mmap", "ParameterSchedulers", "Random", "Reactant", "ReactantNitro", "Statistics", "ZipArchives", "ZipFile"]
+deps = ["Downloads", "Lux", "Luximm", "MLUtils", "Mmap", "ParameterSchedulers", "Random", "Reactant", "ReactantNitro", "Statistics", "ZipArchives"]
 path = "."
 uuid = "096533d6-c3c2-452d-832d-f47e1fae91c7"
 version = "0.1.0"
@@ -1204,15 +1194,16 @@ uuid = "a3311ec8-5e00-46d5-b541-4f83e724a433"
 version = "0.1.23"
 
 [[deps.ReactantNitro]]
-deps = ["Enzyme", "Functors", "JLD2", "JSON3", "LinearAlgebra", "Logging", "Lux", "Optimisers", "PrecompileTools", "PrettyTables", "Printf", "ProgressLogging", "ProgressMeter", "Random", "Reactant", "SHA", "Statistics", "Tables", "UUIDs"]
-git-tree-sha1 = "a93c1e177b66d25b97d7b3ceb87c4cd099b5564e"
+deps = ["Dates", "Enzyme", "Functors", "JLD2", "JSON", "LinearAlgebra", "Logging", "Lux", "Optimisers", "PrecompileTools", "Preferences", "PrettyTables", "Printf", "ProgressLogging", "ProgressMeter", "Random", "Reactant", "SHA", "Statistics", "Tables", "UUIDs"]
+git-tree-sha1 = "1728be2d5caf5a08bf064585c612b50796d5aa64"
 uuid = "641982cc-88f5-4d80-bec4-e68c6a8af0a5"
-version = "0.1.5"
+version = "0.1.9"
 
     [deps.ReactantNitro.extensions]
     ReactantNitroKaimonGateExt = "KaimonGate"
     ReactantNitroMLUtilsExt = "MLUtils"
     ReactantNitroMakieExt = "Makie"
+    ReactantNitroPythonCallExt = "PythonCall"
     ReactantNitroReactantServerExportExt = "ReactantServerExport"
     ReactantNitroTensorBoardLoggerExt = "TensorBoardLogger"
 
@@ -1220,6 +1211,7 @@ version = "0.1.5"
     KaimonGate = "5ee84a8c-75bd-412f-a7b8-4e6463aa635f"
     MLUtils = "f1d291b0-491e-4a28-83b9-f70985020b54"
     Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+    PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
     ReactantServerExport = "90fa0446-f028-4638-8833-e223884d9b4d"
     TensorBoardLogger = "899adc3e-224a-11e9-021f-63837185c80f"
 
@@ -1375,12 +1367,6 @@ git-tree-sha1 = "c581be48ae1cbf83e899b14c07a807e1787512cc"
 uuid = "53d494c1-5632-5724-8f4c-31dff12d585f"
 version = "0.3.1"
 
-[[deps.StructTypes]]
-deps = ["Dates", "UUIDs"]
-git-tree-sha1 = "159331b30e94d7b11379037feeb9b690950cace8"
-uuid = "856f2bd8-1eba-4b0a-8007-ebc267875bd4"
-version = "1.11.0"
-
 [[deps.StructUtils]]
 deps = ["Dates", "UUIDs"]
 git-tree-sha1 = "b814d5005d6a529d740ffe06f8a86396f6501138"
@@ -1502,12 +1488,6 @@ deps = ["ArgCheck", "CodecInflate64", "CodecZlib", "InputBuffers", "PrecompileTo
 git-tree-sha1 = "83f728ecb873c58b794964f8b4bed811814d4b0d"
 uuid = "49080126-0e18-4c2a-b176-c102e4b3760c"
 version = "2.6.0"
-
-[[deps.ZipFile]]
-deps = ["Libdl", "Printf", "Zlib_jll"]
-git-tree-sha1 = "f492b7fe1698e623024e873244f10d89c95c340a"
-uuid = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
-version = "0.10.1"
 
 [[deps.Zlib_jll]]
 deps = ["Libdl"]
