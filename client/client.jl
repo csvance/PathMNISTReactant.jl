@@ -23,10 +23,6 @@ const CLASSES = (
     "normal mucosa", "stroma", "tumor epithelium",
 )
 
-# The model takes (W, H, C, N), UInt8: the same permutation the training loader applies, and
-# no augmentation. Normalization happens inside the served program.
-tiles(images, idx) = permutedims(images[:, :, :, idx], (2, 3, 1, 4))
-
 softmax(z) = (e = exp.(z .- maximum(z; dims = 1)); e ./ sum(e; dims = 1))
 
 # The fast path for a whole split: the client hands each chunk a slot in its staging pool,
@@ -67,9 +63,14 @@ function main(data_dir, url = "grpc://127.0.0.1:8001"; batch = 16)
         t0 = time()
         infer_async(model, io)                                # the whole split, chunks in flight
         dt = time() - t0
-        # Single-tile latency, one plain request at a time.
-        infer(idx) = InferOutput("logits", infer_sync(model, [InferInput("img", tiles(images, idx))]), Float32)
-        lat = [(t = time(); infer(i:i); 1000 * (time() - t)) for i in 1:200]
+        # Single-tile latency, one request at a time through the same pooled path.
+        one_logits = zeros(Float32, length(CLASSES), 1)
+        lat = map(1:200) do i
+            tile = images[:, :, :, i:i]
+            t = time()
+            infer_sync(model, TileIO(tile, one_logits))
+            1000 * (time() - t)
+        end
         sort!(lat)
         @printf("test set: %d tiles in %.1f s (%.0f tiles/s, batch %d)\n", N, dt, N / dt, batch)
         @printf("batch-1 latency: p50 %.1f ms, p99 %.1f ms\n", lat[100], lat[198])
