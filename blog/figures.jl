@@ -8,7 +8,7 @@
 #   data_dir          the converted dataset (test_images.u8, test_labels.u8)
 #   post_figures_dir  the post's figures/ directory; everything below is written there
 #
-# Writes: correct, incorrect, reliability, confusion, nonagon, flows (.png and -dark.png),
+# Writes: correct, incorrect (errors beside their two classes), reliability, confusion, nonagon, flows (.png and -dark.png),
 # trajectories.json, confusion.json, hero/tiles.jpg and hero/tiles.json; and, into assets_dir,
 # numbers.md, a report of every number the post quotes from this model.
 using CairoMakie, Mmap, Random, Base64, Printf
@@ -79,6 +79,41 @@ function prediction_grid(T, mode, idxs, title, base; cols)
     save(fname(base, mode), fig; px_per_unit = 1)
 end
 
+# Correctly classified tiles of class k at evenly spaced confidence ranks, so the examples are
+# typical of the class rather than its easiest cases.
+function examples(k, n)
+    idx = findall((labels .== k) .& (pred .== k))
+    idx = idx[sortperm(conf[idx])]
+    return [idx[round(Int, j * length(idx) / (n + 1))] for j in 1:n]
+end
+
+# The most confident errors beside correct tiles of the class they were predicted as and of their
+# true class: one block of three rows per (true, predicted) pair among `errs`.
+function error_comparison(T, mode, errs; per = 4, px = 180)
+    pairs = unique((labels[i], pred[i]) for i in errs)
+    rows = []
+    for (t, p) in pairs
+        e = filter(i -> (labels[i], pred[i]) == (t, p), errs)[1:min(per, end)]
+        push!(rows, ("Errors: $(CLASSES[t]) predicted as $(CLASSES[p])", e, true),
+            ("Correctly classified $(CLASSES[p]) (the predicted class)", examples(p, per), false),
+            ("Correctly classified $(CLASSES[t]) (the true class)", examples(t, per), false))
+    end
+    fig = Figure(size = (px * per, (px + 46) * length(rows) + 50))
+    Label(fig[0, 1:per], "The most confident errors, beside each class they fall between"; fontsize = 18, font = :bold)
+    for (r, (title, idxs, err)) in enumerate(rows)
+        g = fig[r, 1:per] = GridLayout()
+        Label(g[0, 1:per], title; fontsize = 13, font = :bold, halign = :left, color = err ? T.err : T.ink)
+        for (c, i) in enumerate(idxs)
+            ax = Axis(g[1, c]; aspect = DataAspect(), yreversed = true, titlesize = 11,
+                title = err ? "$(round(100conf[i]; digits = 1))% $(CLASSES[pred[i]])" : "", titlecolor = T.muted)
+            hidedecorations!(ax); hidespines!(ax)
+            image!(ax, rgb(tile(i)))
+        end
+        rowgap!(g, 4)
+    end
+    save(fname("incorrect", mode), fig; px_per_unit = 1)
+end
+
 function reliability(T, mode; bins = 15)
     correct = pred .== labels
     edges = range(0, 1; length = bins + 1)
@@ -95,8 +130,14 @@ function reliability(T, mode; bins = 15)
     ax = Axis(fig[1, 1]; xlabel = "confidence", ylabel = "accuracy", limits = (0, 1, 0, 1),
         title = "Reliability (test), ECE = $(round(100ece; digits = 2))%")
     lines!(ax, [0, 1], [0, 1]; color = T.muted, linestyle = :dash)
+    # A bar below the diagonal is right less often than its confidence claims (overconfident).
     xs = [r.x for r in used]
-    barplot!(ax, xs, [r.acc for r in used]; width = 1 / bins, gap = 0.05, color = T.bar)
+    under, over = T.bar, T.cls[3]
+    barplot!(ax, xs, [r.acc for r in used]; width = 1 / bins, gap = 0.05,
+        color = [r.acc < r.conf ? over : under for r in used])
+    axislegend(ax, [PolyElement(color = under), PolyElement(color = over)],
+        ["underconfident: accuracy above confidence", "overconfident: accuracy below confidence"];
+        position = :lt, labelsize = 10)
     text!(ax, xs, [min(r.acc, 0.93) + 0.02 for r in used]; text = [string(r.n) for r in used],
         align = (:center, :bottom), fontsize = 9, rotation = pi / 2, color = T.ink)
     save(fname("reliability", mode), fig; px_per_unit = 1)
@@ -215,7 +256,7 @@ mkpath(OUT)
 for (mode, T) in THEMES
     with_theme(makie_theme(T)) do
         prediction_grid(T, mode, typical, "Correct: a typical test prediction per class", "correct"; cols = 3)
-        prediction_grid(T, mode, worst, "Incorrect: the 12 most confident test errors", "incorrect"; cols = 4)
+        error_comparison(T, mode, worst)
         reliability(T, mode); confusion(T, mode); nonagon(T, mode); flows(T, mode, sel)
     end
 end
