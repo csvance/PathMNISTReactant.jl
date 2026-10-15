@@ -14,33 +14,47 @@
 using CairoMakie, Mmap, Random, Base64, Printf
 
 const ASSETS, DATA, OUT = ARGS[1], ARGS[2], ARGS[3]
-const CLASSES = ["adipose", "background", "debris", "lymphocytes", "mucus", "smooth muscle",
-    "normal mucosa", "stroma", "tumor epithelium"]
+const CLASSES = [
+    "adipose", "background", "debris", "lymphocytes", "mucus", "smooth muscle",
+    "normal mucosa", "stroma", "tumor epithelium",
+]
 const K = length(CLASSES)
 
 # The validated reference sequential blue ramp (steps 100 to 700) and categorical palette, each
 # with its dark-surface steps; "background" takes a neutral gray as the ninth class.
-const BLUES = ["#cde2fb", "#b7d3f6", "#9ec5f4", "#86b6ef", "#6da7ec", "#5598e7", "#3987e5",
-    "#2a78d6", "#256abf", "#1c5cab", "#184f95", "#104281", "#0d366b"]
+const BLUES = [
+    "#cde2fb", "#b7d3f6", "#9ec5f4", "#86b6ef", "#6da7ec", "#5598e7", "#3987e5",
+    "#2a78d6", "#256abf", "#1c5cab", "#184f95", "#104281", "#0d366b",
+]
 const THEMES = Dict(
-    "light" => (; bg = "#ffffff", ink = "#1f2328", muted = "#57606a", grid = "#d0d7de",
+    "light" => (;
+        bg = "#ffffff", ink = "#1f2328", muted = "#57606a", grid = "#d0d7de",
         err = "#cf222e", bar = "#2a78d6", ramp = BLUES,
-        cls = ["#2a78d6", "#8c959f", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]),
-    "dark" => (; bg = "#0f1115", ink = "#d7dae0", muted = "#9aa3ae", grid = "#2a2f38",
+        cls = ["#2a78d6", "#8c959f", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"],
+    ),
+    "dark" => (;
+        bg = "#0f1115", ink = "#d7dae0", muted = "#9aa3ae", grid = "#2a2f38",
         err = "#ff7b72", bar = "#3987e5", ramp = reverse(BLUES),
-        cls = ["#3987e5", "#6e7681", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"]),
+        cls = ["#3987e5", "#6e7681", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"],
+    ),
 )
 
 function makie_theme(T)
     spines = (; leftspinecolor = T.muted, rightspinecolor = T.muted, topspinecolor = T.muted, bottomspinecolor = T.muted)
-    return Theme(; backgroundcolor = T.bg, textcolor = T.ink,
-        Axis = (; backgroundcolor = T.bg, xgridcolor = T.grid, ygridcolor = T.grid, titlecolor = T.ink,
+    return Theme(;
+        backgroundcolor = T.bg, textcolor = T.ink,
+        Axis = (;
+            backgroundcolor = T.bg, xgridcolor = T.grid, ygridcolor = T.grid, titlecolor = T.ink,
             xtickcolor = T.muted, ytickcolor = T.muted, xticklabelcolor = T.ink, yticklabelcolor = T.ink,
-            xlabelcolor = T.ink, ylabelcolor = T.ink, spines...),
+            xlabelcolor = T.ink, ylabelcolor = T.ink, spines...,
+        ),
         Legend = (; backgroundcolor = T.bg, framevisible = false, labelcolor = T.ink),
-        Colorbar = (; tickcolor = T.muted, ticklabelcolor = T.ink, labelcolor = T.ink,
-            leftspinecolor = T.muted, rightspinecolor = T.muted, topspinecolor = T.muted, bottomspinecolor = T.muted),
-        Label = (; color = T.ink))
+        Colorbar = (;
+            tickcolor = T.muted, ticklabelcolor = T.ink, labelcolor = T.ink,
+            leftspinecolor = T.muted, rightspinecolor = T.muted, topspinecolor = T.muted, bottomspinecolor = T.muted,
+        ),
+        Label = (; color = T.ink)
+    )
 end
 
 # ── Data ─────────────────────────────────────────────────────────────────────────
@@ -52,7 +66,9 @@ labels = Int.(read(joinpath(DATA, "test_labels.u8"))) .+ 1
 probs = Float64.(reshape(reinterpret(Float32, read(joinpath(ASSETS, "test_probs.f32"))), K, :))
 conf = vec(maximum(probs; dims = 1))
 pred = [argmax(c) for c in eachcol(probs)]
-C = zeros(Int, K, K); for (l, p) in zip(labels, pred); C[l, p] += 1; end
+C = zeros(Int, K, K); for (l, p) in zip(labels, pred)
+    C[l, p] += 1
+end
 share = C ./ sum(C; dims = 2)
 picks = reinterpret(Int64, read(joinpath(ASSETS, "traj_picks.i64")))
 P = Float64.(reshape(reinterpret(Float32, read(joinpath(ASSETS, "traj_P.f32"))), K, length(picks), :))
@@ -70,13 +86,15 @@ function prediction_grid(T, mode, idxs, title, base; cols)
     for (j, i) in enumerate(idxs)
         r, c = fldmod1(j, cols)
         ok = pred[i] == labels[i]
-        ax = Axis(fig[r, c]; aspect = DataAspect(), yreversed = true, titlesize = 12,
+        ax = Axis(
+            fig[r, c]; aspect = DataAspect(), yreversed = true, titlesize = 12,
             title = "true: $(CLASSES[labels[i]])\npred: $(CLASSES[pred[i]]) ($(round(Int, 100conf[i]))%)",
-            titlecolor = ok ? T.ink : T.err)
+            titlecolor = ok ? T.ink : T.err
+        )
         hidedecorations!(ax); hidespines!(ax)
         image!(ax, rgb(tile(i)))
     end
-    save(fname(base, mode), fig; px_per_unit = 1)
+    return save(fname(base, mode), fig; px_per_unit = 1)
 end
 
 # Correctly classified tiles of class k at evenly spaced confidence ranks, so the examples are
@@ -94,9 +112,11 @@ function error_comparison(T, mode, errs; per = 4, px = 180)
     rows = []
     for (t, p) in pairs
         e = filter(i -> (labels[i], pred[i]) == (t, p), errs)[1:min(per, end)]
-        push!(rows, ("Errors: $(CLASSES[t]) predicted as $(CLASSES[p])", e, true),
+        push!(
+            rows, ("Errors: $(CLASSES[t]) predicted as $(CLASSES[p])", e, true),
             ("Correctly classified $(CLASSES[p]) (the predicted class)", examples(p, per), false),
-            ("Correctly classified $(CLASSES[t]) (the true class)", examples(t, per), false))
+            ("Correctly classified $(CLASSES[t]) (the true class)", examples(t, per), false)
+        )
     end
     fig = Figure(size = (px * per, (px + 46) * length(rows) + 50))
     Label(fig[0, 1:per], "The most confident errors, beside each class they fall between"; fontsize = 18, font = :bold)
@@ -104,14 +124,16 @@ function error_comparison(T, mode, errs; per = 4, px = 180)
         g = fig[r, 1:per] = GridLayout()
         Label(g[0, 1:per], title; fontsize = 13, font = :bold, halign = :left, color = err ? T.err : T.ink)
         for (c, i) in enumerate(idxs)
-            ax = Axis(g[1, c]; aspect = DataAspect(), yreversed = true, titlesize = 11,
-                title = err ? "$(round(100conf[i]; digits = 1))% $(CLASSES[pred[i]])" : "", titlecolor = T.muted)
+            ax = Axis(
+                g[1, c]; aspect = DataAspect(), yreversed = true, titlesize = 11,
+                title = err ? "$(round(100conf[i]; digits = 1))% $(CLASSES[pred[i]])" : "", titlecolor = T.muted
+            )
             hidedecorations!(ax); hidespines!(ax)
             image!(ax, rgb(tile(i)))
         end
         rowgap!(g, 4)
     end
-    save(fname("incorrect", mode), fig; px_per_unit = 1)
+    return save(fname("incorrect", mode), fig; px_per_unit = 1)
 end
 
 function reliability(T, mode; bins = 15)
@@ -121,26 +143,36 @@ function reliability(T, mode; bins = 15)
     rows = map(1:bins) do b
         in_b = bin .== b
         n = count(in_b)
-        (; x = (edges[b] + edges[b + 1]) / 2, n, acc = count(in_b .& correct) / max(n, 1),
-           conf = sum(conf[in_b]) / max(n, 1))
+        (;
+            x = (edges[b] + edges[b + 1]) / 2, n, acc = count(in_b .& correct) / max(n, 1),
+            conf = sum(conf[in_b]) / max(n, 1),
+        )
     end
     used = filter(r -> r.n > 0, rows)
     ece = sum(r.n * abs(r.conf - r.acc) for r in used) / length(conf)
     fig = Figure(size = (460, 420))
-    ax = Axis(fig[1, 1]; xlabel = "confidence", ylabel = "accuracy", limits = (0, 1, 0, 1),
-        title = "Reliability (test), ECE = $(round(100ece; digits = 2))%")
+    ax = Axis(
+        fig[1, 1]; xlabel = "confidence", ylabel = "accuracy", limits = (0, 1, 0, 1),
+        title = "Reliability (test), ECE = $(round(100ece; digits = 2))%"
+    )
     lines!(ax, [0, 1], [0, 1]; color = T.muted, linestyle = :dash)
     # A bar below the diagonal is right less often than its confidence claims (overconfident).
     xs = [r.x for r in used]
     under, over = T.bar, T.cls[3]
-    barplot!(ax, xs, [r.acc for r in used]; width = 1 / bins, gap = 0.05,
-        color = [r.acc < r.conf ? over : under for r in used])
-    axislegend(ax, [PolyElement(color = under), PolyElement(color = over)],
+    barplot!(
+        ax, xs, [r.acc for r in used]; width = 1 / bins, gap = 0.05,
+        color = [r.acc < r.conf ? over : under for r in used]
+    )
+    axislegend(
+        ax, [PolyElement(color = under), PolyElement(color = over)],
         ["underconfident: accuracy above confidence", "overconfident: accuracy below confidence"];
-        position = :lt, labelsize = 10)
-    text!(ax, xs, [min(r.acc, 0.93) + 0.02 for r in used]; text = [string(r.n) for r in used],
-        align = (:center, :bottom), fontsize = 9, rotation = pi / 2, color = T.ink)
-    save(fname("reliability", mode), fig; px_per_unit = 1)
+        position = :lt, labelsize = 10
+    )
+    text!(
+        ax, xs, [min(r.acc, 0.93) + 0.02 for r in used]; text = [string(r.n) for r in used],
+        align = (:center, :bottom), fontsize = 9, rotation = pi / 2, color = T.ink
+    )
+    return save(fname("reliability", mode), fig; px_per_unit = 1)
 end
 
 # Correct and wrong cells do different jobs, so they get different scales, as in the post's
@@ -148,10 +180,14 @@ end
 # for errors on a log scale. Saturation carries the amount in both themes: each ramp runs from a
 # near-gray tint to the most vivid colour of its hue.
 const CM_RAMPS = Dict(
-    "light" => (; good = ["#e2ecfc", "#d0e0fa", "#bfd4f8", "#aec9f5", "#9dbdf2", "#8cb1ee", "#7ba5eb", "#6a99e7", "#598de3", "#4881df", "#3674db", "#2267d7", "#0559d2"],
-        bad = ["#fce5e2", "#fbd7d2", "#fac9c2", "#f9bab2", "#f7aca3", "#f49d93", "#f28e83", "#ee7f74", "#eb6f64", "#e65e54", "#e24c44", "#dd3633", "#d8151e"]),
-    "dark" => (; good = ["#272e3b", "#2a3549", "#2c3d57", "#2f4466", "#324b75", "#355384", "#375a94", "#3a62a4", "#3c69b4", "#3e71c4", "#4178d5", "#4380e6", "#4588f7"],
-        bad = ["#3a2927", "#482d29", "#57302c", "#65332e", "#743530", "#843831", "#933a33", "#a33b35", "#b33d36", "#c33d37", "#d43e38", "#e43e39", "#f53e39"]),
+    "light" => (;
+        good = ["#e2ecfc", "#d0e0fa", "#bfd4f8", "#aec9f5", "#9dbdf2", "#8cb1ee", "#7ba5eb", "#6a99e7", "#598de3", "#4881df", "#3674db", "#2267d7", "#0559d2"],
+        bad = ["#fce5e2", "#fbd7d2", "#fac9c2", "#f9bab2", "#f7aca3", "#f49d93", "#f28e83", "#ee7f74", "#eb6f64", "#e65e54", "#e24c44", "#dd3633", "#d8151e"],
+    ),
+    "dark" => (;
+        good = ["#272e3b", "#2a3549", "#2c3d57", "#2f4466", "#324b75", "#355384", "#375a94", "#3a62a4", "#3c69b4", "#3e71c4", "#4178d5", "#4380e6", "#4588f7"],
+        bad = ["#3a2927", "#482d29", "#57302c", "#65332e", "#743530", "#843831", "#933a33", "#a33b35", "#b33d36", "#c33d37", "#d43e38", "#e43e39", "#f53e39"],
+    ),
 )
 function ramp_at(ramp, s)                  # s in [0, 1], interpolated between steps
     f = 1 + clamp(s, 0, 1) * (length(ramp) - 1); a = floor(Int, f); b = min(a + 1, length(ramp))
@@ -164,13 +200,15 @@ contrast(a, b::String) = contrast(a, parse(Makie.RGBf, b))
 contrast(a, b) = ((x, y) = extrema((relum(a), relum(b))); (y + 0.05) / (x + 0.05))
 function confusion(T, mode)
     fig = Figure(size = (760, 720), fontsize = 13)
-    ax = Axis(fig[1, 1:2]; title = "Test confusion matrix, share of the true class (%)", titlesize = 16,
+    ax = Axis(
+        fig[1, 1:2]; title = "Test confusion matrix, share of the true class (%)", titlesize = 16,
         xlabel = "predicted class", ylabel = "true class (tiles)",
         xticks = (1:K, CLASSES), xticklabelrotation = pi / 4,
         yticks = (1:K, ["$(CLASSES[k]) ($(sum(C[k, :])))" for k in 1:K]),
         yreversed = true, aspect = DataAspect(), xgridvisible = false, ygridvisible = false,
         leftspinevisible = false, bottomspinevisible = false, topspinevisible = false,
-        rightspinevisible = false, xticksvisible = false, yticksvisible = false)
+        rightspinevisible = false, xticksvisible = false, yticksvisible = false
+    )
     d = [share[k, k] for k in 1:K]
     o = [share[t, p] for t in 1:K, p in 1:K if t != p && C[t, p] > 0]
     dlo, dhi = extrema(d); olo, ohi = extrema(o)
@@ -178,24 +216,30 @@ function confusion(T, mode)
     for t in 1:K, p in 1:K
         v = share[t, p]
         col = C[t, p] == 0 ? parse(Makie.RGBf, empty) :
-              t == p ? ramp_at(CM_RAMPS[mode].good, (v - dlo) / (dhi - dlo)) :
-              ramp_at(CM_RAMPS[mode].bad, log(v / olo) / log(ohi / olo))
+            t == p ? ramp_at(CM_RAMPS[mode].good, (v - dlo) / (dhi - dlo)) :
+            ramp_at(CM_RAMPS[mode].bad, log(v / olo) / log(ohi / olo))
         poly!(ax, Rect2f(p - 0.47, t - 0.47, 0.94, 0.94); color = col, strokewidth = 0)
         C[t, p] == 0 && continue
         alt = mode == "light" ? "#ffffff" : "#0f1115"
         ink = contrast(col, T.ink) >= contrast(col, alt) ? T.ink : alt
-        text!(ax, p, t; text = v > 0.9995 ? "100" : string(round(100v; digits = 1)),
-            align = (:center, :center), fontsize = 12, color = ink)
+        text!(
+            ax, p, t; text = v > 0.9995 ? "100" : string(round(100v; digits = 1)),
+            align = (:center, :center), fontsize = 12, color = ink
+        )
     end
     pcts(x) = x > 0.9995 ? "100%" : string(round(100x; digits = 1), "%")
-    Colorbar(fig[2, 1]; colormap = [ramp_at(CM_RAMPS[mode].good, s) for s in 0:0.05:1], limits = (dlo, dhi),
+    Colorbar(
+        fig[2, 1]; colormap = [ramp_at(CM_RAMPS[mode].good, s) for s in 0:0.05:1], limits = (dlo, dhi),
         vertical = false, flipaxis = false, label = "correct: recall (linear)",
-        ticks = ([dlo, dhi], pcts.([dlo, dhi])), width = 220)
-    Colorbar(fig[2, 2]; colormap = [ramp_at(CM_RAMPS[mode].bad, s) for s in 0:0.05:1], limits = (log(olo), log(ohi)),
+        ticks = ([dlo, dhi], pcts.([dlo, dhi])), width = 220
+    )
+    Colorbar(
+        fig[2, 2]; colormap = [ramp_at(CM_RAMPS[mode].bad, s) for s in 0:0.05:1], limits = (log(olo), log(ohi)),
         vertical = false, flipaxis = false, label = "errors (log scale)",
-        ticks = ([log(olo), log(ohi)], pcts.([olo, ohi])), width = 220)
+        ticks = ([log(olo), log(ohi)], pcts.([olo, ohi])), width = 220
+    )
     colgap!(fig.layout, 70)
-    save(fname("confusion", mode), fig; px_per_unit = 1.5)
+    return save(fname("confusion", mode), fig; px_per_unit = 1.5)
 end
 
 corner(k) = Point2f(sinpi(2(k - 1) / K), cospi(2(k - 1) / K))
@@ -215,7 +259,7 @@ function nonagon(T, mode)
         text!(ax, 1.12f0 * corner(k); text = CLASSES[k], align = (:center, :center), fontsize = 14, color = T.ink)
     end
     limits!(ax, -1.35, 1.35, -1.35, 1.35)
-    save(fname("nonagon", mode), fig; px_per_unit = 1)
+    return save(fname("nonagon", mode), fig; px_per_unit = 1)
 end
 
 function flows(T, mode, sel)
@@ -223,9 +267,11 @@ function flows(T, mode, sel)
     fig = Figure(size = (760, 200 * length(sel)))
     for (row, n) in enumerate(sel)
         pk = argmax(view(P, :, n, size(P, 3)))
-        ax_i = Axis(fig[row, 1]; aspect = DataAspect(), yreversed = true, titlesize = 12,
+        ax_i = Axis(
+            fig[row, 1]; aspect = DataAspect(), yreversed = true, titlesize = 12,
             title = "true: $(CLASSES[plabels[n]])\npred: $(CLASSES[pk])",
-            titlecolor = pk == plabels[n] ? T.ink : T.err)
+            titlecolor = pk == plabels[n] ? T.ink : T.err
+        )
         hidedecorations!(ax_i); hidespines!(ax_i)
         image!(ax_i, rgb(tile(picks[n])))
         ax = Axis(fig[row, 2]; xlabel = row == length(sel) ? "t" : "", ylabel = "p(class)", limits = (0, 1, 0, 1))
@@ -238,7 +284,7 @@ function flows(T, mode, sel)
         row == 1 && Legend(fig[1:length(sel), 3], ax)
     end
     colsize!(fig.layout, 1, Fixed(170))
-    save(fname("flows", mode), fig; px_per_unit = 1)
+    return save(fname("flows", mode), fig; px_per_unit = 1)
 end
 
 # The same tiles as before: a typical correct prediction per class, the 12 most confident
@@ -268,14 +314,22 @@ jarr(xs) = "[" * join(xs, ",") * "]"
 
 # trajectories.json (trajectory-player.js): p as bytes, p[(t * N + n) * K + k] = round(255 p).
 let q = round.(UInt8, clamp.(P, 0, 1) .* 255)            # (K, N, T) column-major is that order
-    write(joinpath(OUT, "trajectories.json"), string("{\"classes\":", jarr(jstr.(CLASSES)),
-        ",\"labels\":", jarr(plabels .- 1), ",\"K\":", K, ",\"N\":", size(P, 2), ",\"T\":", size(P, 3),
-        ",\"p\":", jstr(base64encode(vec(q))), "}\n"))
+    write(
+        joinpath(OUT, "trajectories.json"), string(
+            "{\"classes\":", jarr(jstr.(CLASSES)),
+            ",\"labels\":", jarr(plabels .- 1), ",\"K\":", K, ",\"N\":", size(P, 2), ",\"T\":", size(P, 3),
+            ",\"p\":", jstr(base64encode(vec(q))), "}\n"
+        )
+    )
 end
 
 # confusion.json (confusion-matrix.js): counts[true][predicted].
-write(joinpath(OUT, "confusion.json"), string("{\"classes\":", jarr(jstr.(CLASSES)), ",\"codes\":",
-    jarr(jstr.(CODES)), ",\"counts\":", jarr([jarr(C[t, :]) for t in 1:K]), "}\n"))
+write(
+    joinpath(OUT, "confusion.json"), string(
+        "{\"classes\":", jarr(jstr.(CLASSES)), ",\"codes\":",
+        jarr(jstr.(CODES)), ",\"counts\":", jarr([jarr(C[t, :]) for t in 1:K]), "}\n"
+    )
+)
 
 # hero/tiles.jpg and hero/tiles.json (hero.js): 48 test tiles, five confident correct ones per
 # class and three confident errors, shuffled, as an 8 x 6 sprite of 112 px tiles.
@@ -296,8 +350,16 @@ let rng = Xoshiro(7), S = 112, cols = 8
     end
     run(`ffmpeg -loglevel error -y -i $ppm -q:v 7 $(joinpath(OUT, "hero", "tiles.jpg"))`)
     rm(ppm)
-    write(joinpath(OUT, "hero", "tiles.json"), jarr([string("{\"label\":", labels[i] - 1, ",\"pred\":",
-        pred[i] - 1, ",\"conf\":", round(conf[i]; digits = 3), "}") for i in sel]) * "\n")
+    write(
+        joinpath(OUT, "hero", "tiles.json"), jarr(
+            [
+                string(
+                    "{\"label\":", labels[i] - 1, ",\"pred\":",
+                    pred[i] - 1, ",\"conf\":", round(conf[i]; digits = 3), "}"
+                ) for i in sel
+            ]
+        ) * "\n"
+    )
 end
 
 # ── numbers.md: every number the post quotes from this model ─────────────────────
@@ -311,7 +373,7 @@ let io = IOBuffer(), N = length(labels)
     @printf(io, "- macro accuracy %.2f%%, accuracy %.2f%%, ECE %.2f%%\n", 100sum(recall) / K, 100count(correct) / N, 100ece)
     println(io, "- errors: $nwrong of $N")
     counts = [count(==(b), bin) for b in 1:bins]
-    println(io, "- reliability: $(counts[end]) tiles in the top bin; largest lower bin holds $(maximum(counts[1:end-1]))")
+    println(io, "- reliability: $(counts[end]) tiles in the top bin; largest lower bin holds $(maximum(counts[1:(end - 1)]))")
     @printf(io, "- test loss (cross-entropy): %.3f\n", -sum(log(probs[labels[i], i]) for i in 1:N) / N)
     println(io, "- errors above 99% confidence: ", count(conf[.!correct] .> 0.99))
     pair(i) = Set((labels[i], pred[i])) == Set((6, 8))
@@ -335,8 +397,10 @@ let io = IOBuffer(), N = length(labels)
     end
     d = sort(filter(!isnan, decide))
     q(x) = d[clamp(round(Int, x * length(d)), 1, length(d))]
-    @printf(io, "\n## Trajectories\n\n- decision time t (final class stays above 0.5): 10%% %.2f, 25%% %.2f, median %.2f, 75%% %.2f, 90%% %.2f\n",
-        q(0.1), q(0.25), q(0.5), q(0.75), q(0.9))
+    @printf(
+        io, "\n## Trajectories\n\n- decision time t (final class stays above 0.5): 10%% %.2f, 25%% %.2f, median %.2f, 75%% %.2f, 90%% %.2f\n",
+        q(0.1), q(0.25), q(0.5), q(0.75), q(0.9)
+    )
     write(joinpath(ASSETS, "numbers.md"), take!(io))
 end
 println("wrote figures and JSON to ", OUT, ", numbers.md to ", ASSETS)

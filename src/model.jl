@@ -10,8 +10,7 @@ function ReactantNitro.build_model(e::PathMNIST, rng)
     # num_classes = 0 drops the ImageNet classifier and returns the last
     # feature map. prefix = (:backbone,) points the weight loader at the
     # @compact slot of the same name.
-    backbone, load_backbone = create_pretrained(e.variant;
-        num_classes = 0, prefix = (:backbone,))
+    backbone, load_backbone = create_pretrained(e.variant; num_classes = 0, prefix = (:backbone,))
     width = last(feature_info(e.variant).channels)          # 768 for Tiny
     # Captured by the closure rather than passed to @compact, which would
     # make them trainable parameters.

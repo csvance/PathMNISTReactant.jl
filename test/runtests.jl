@@ -12,12 +12,14 @@ function npy_bytes(shape, values)
 end
 
 function write_synthetic_npz(path; sizes = (train = 40, val = 20, test = 20))
-    ZipWriter(path) do zip
+    return ZipWriter(path) do zip
         for (split, N) in pairs(sizes)
             # C order (N, H, W, C): the last index varies fastest
             pixels = UInt8[expected(n, h, w, c) for c in 1:3, w in 1:224, h in 1:224, n in 1:N]
-            for (name, bytes) in (("images", npy_bytes((N, 224, 224, 3), vec(pixels))),
-                                  ("labels", npy_bytes((N, 1), UInt8[(n - 1) % 9 for n in 1:N])))
+            for (name, bytes) in (
+                    ("images", npy_bytes((N, 224, 224, 3), vec(pixels))),
+                    ("labels", npy_bytes((N, 1), UInt8[(n - 1) % 9 for n in 1:N])),
+                )
                 zip_newfile(zip, "$(split)_$(name).npy"; compress = true)
                 write(zip, bytes)
             end
@@ -35,8 +37,10 @@ ensure_dataset_mmapable(PathMNIST(; data_url = URL, data_dir = DATA_DIR))
     @testset "experiment fields" begin
         e = PathMNIST()
         @test ReactantNitro.host_fields(PathMNIST) ==
-              (:data_url, :data_dir, :seed, :batch_size, :accum, :max_epochs, :max_lr, :node_lr_ratio,
-               :pct_start, :weight_decay, :aug_rot90, :aug_flip)
+            (
+            :data_url, :data_dir, :seed, :batch_size, :accum, :max_epochs, :max_lr, :node_lr_ratio,
+            :pct_start, :weight_decay, :aug_rot90, :aug_flip,
+        )
         @test ReactantNitro.device_fields(PathMNIST) == (:kinetic_weight,)
         @test (e.batch_size, e.accum) == (16, 2)
         @test PathMNIST(; max_epochs = 3).max_epochs == 3
@@ -71,8 +75,10 @@ ensure_dataset_mmapable(PathMNIST(; data_url = URL, data_dir = DATA_DIR))
         @test d.labels[1:10] == [1, 2, 3, 4, 5, 6, 7, 8, 9, 1]       # 1-based
         b = getobs(d, [3, 17])
         @test size(b.img) == (224, 224, 3, 2) && eltype(b.img) == UInt8
-        @test all(b.img[w, h, c, j] == expected(n, h, w, c)
-                  for (j, n) in enumerate([3, 17]), w in 1:224, h in 1:224, c in 1:3)
+        @test all(
+            b.img[w, h, c, j] == expected(n, h, w, c)
+                for (j, n) in enumerate([3, 17]), w in 1:224, h in 1:224, c in 1:3
+        )
         @test b.label == d.labels[[3, 17]]
     end
 
@@ -113,8 +119,10 @@ ensure_dataset_mmapable(PathMNIST(; data_url = URL, data_dir = DATA_DIR))
         fresh = mktempdir()
         data = ReactantNitro.build_data(PathMNIST(; data_url = URL, data_dir = fresh), nothing)
         @test PathMNISTReactant.dataset_complete(fresh)
-        widths(dl) = (plan = ReactantNitro.begin_epoch!(dl);
-                      [size(ReactantNitro.batch_at(dl, i, plan).img, 4) for i in 1:length(dl)])
+        widths(dl) = (
+            plan = ReactantNitro.begin_epoch!(dl);
+            [size(ReactantNitro.batch_at(dl, i, plan).img, 4) for i in 1:length(dl)]
+        )
         @test widths(data.train) == [16, 16]     # short batch dropped
         @test widths(data.val) == [16, 4]        # kept; Nitro pads it
         @test widths(data.test) == [16, 4]
@@ -129,9 +137,9 @@ ensure_dataset_mmapable(PathMNIST(; data_url = URL, data_dir = DATA_DIR))
         onehot = Float32.((1:9) .== label')
         out = (; logits, energy = fill(2.0f0, 1, 5))
         @test ReactantNitro.loss(PathMNIST(), out; label) ≈
-              CrossEntropyLoss(; logits = Val(true))(logits, onehot)
+            CrossEntropyLoss(; logits = Val(true))(logits, onehot)
         @test ReactantNitro.loss(PathMNIST(; kinetic_weight = 0.5f0), out; label) ≈
-              CrossEntropyLoss(; logits = Val(true))(logits, onehot) + 1
+            CrossEntropyLoss(; logits = Val(true))(logits, onehot) + 1
     end
 
     @testset "model" begin
@@ -152,9 +160,9 @@ ensure_dataset_mmapable(PathMNIST(; data_url = URL, data_dir = DATA_DIR))
     @testset "rk4" begin
         # du/dt = -u from u0 = 1: the exact answer at t = 1 is exp(-1).
         r = PathMNISTReactant.rk4(u -> -u, [1.0;;], 100)
-        @test r.u[1] ≈ exp(-1) atol = 1e-10
+        @test r.u[1] ≈ exp(-1) atol = 1.0e-10
         # u = exp(-t), so the kinetic energy is the integral of exp(-2t) over [0, 1].
-        @test r.energy[1] ≈ (1 - exp(-2)) / 2 atol = 1e-8
+        @test r.energy[1] ≈ (1 - exp(-2)) / 2 atol = 1.0e-8
     end
 
     @testset "metrics" begin
@@ -167,13 +175,17 @@ ensure_dataset_mmapable(PathMNIST(; data_url = URL, data_dir = DATA_DIR))
         @test m.calib.second === :sum
         @test sum(m.calib.first.samples) == 3 && sum(m.calib.first.correct) == 2
         # Reduced as Nitro would: the count divided, the sums kept.
-        f = ReactantNitro.finalize_metrics(e,
-            (; val_loss = m.val_loss.first / 3, confusion = m.confusion.first, calib = m.calib.first,
-               motion = m.motion.first / 3, kinetic = m.kinetic.first / 3), :val)
+        f = ReactantNitro.finalize_metrics(
+            e,
+            (;
+                val_loss = m.val_loss.first / 3, confusion = m.confusion.first, calib = m.calib.first,
+                motion = m.motion.first / 3, kinetic = m.kinetic.first / 3,
+            ), :val
+        )
         @test f.acc ≈ 2 / 3
         @test f.macro_acc ≈ (1 / 2 + 1) / 2                     # class 3 has no samples: left out
         conf = maximum(softmax(logits; dims = 1); dims = 1)[1]  # every prediction has this confidence
-        @test f.ece ≈ abs(conf - 2 / 3) rtol = 1e-5
+        @test f.ece ≈ abs(conf - 2 / 3) rtol = 1.0e-5
         @test f.kinetic ≈ 2 && f.motion ≈ 1
     end
 

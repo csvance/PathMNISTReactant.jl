@@ -15,10 +15,14 @@ const Enzyme = Reactant.Enzyme
 const BACKBONE = ARGS[1]
 const OUT = mkpath(ARGS[2])
 
-lossf(p, m, s, x, y) = (oh = reshape(1:9, :, 1) .== reshape(y, 1, :);
-    -mean(sum(oh .* logsoftmax(first(Lux.apply(m, x, p, s)); dims = 1); dims = 1)))
-grad(p, m, s, x, y) = Enzyme.gradient(Enzyme.Reverse, lossf, p, Enzyme.Const(m), Enzyme.Const(s),
-    Enzyme.Const(x), Enzyme.Const(y))[1]
+lossf(p, m, s, x, y) = (
+    oh = reshape(1:9, :, 1) .== reshape(y, 1, :);
+    -mean(sum(oh .* logsoftmax(first(Lux.apply(m, x, p, s)); dims = 1); dims = 1))
+)
+grad(p, m, s, x, y) = Enzyme.gradient(
+    Enzyme.Reverse, lossf, p, Enzyme.Const(m), Enzyme.Const(s),
+    Enzyme.Const(x), Enzyme.Const(y)
+)[1]
 
 e = Vision(; BACKBONES[BACKBONE]...)
 model, ps, st = ReactantNitro.build_model(e, Xoshiro(0))

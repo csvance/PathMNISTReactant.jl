@@ -18,8 +18,10 @@ function load_split(dir, split)
 end
 #endregion
 
-const CLASSES = ("adipose", "background", "debris", "lymphocytes", "mucus", "smooth muscle",
-    "normal mucosa", "stroma", "tumor epithelium")
+const CLASSES = (
+    "adipose", "background", "debris", "lymphocytes", "mucus", "smooth muscle",
+    "normal mucosa", "stroma", "tumor epithelium",
+)
 
 # The model takes (W, H, C, N), UInt8: the same permutation the training loader applies, and
 # no augmentation. Normalization happens inside the served program.

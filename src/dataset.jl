@@ -46,7 +46,7 @@ function download_progress()
         pct = 5 * fld(100 * now, 5 * total)
         pct > last[] || return
         last[] = pct
-        @info "  downloaded $(round(now / 1e9; digits = 1)) / $(round(total / 1e9; digits = 1)) GB ($pct%)"
+        return @info "  downloaded $(round(now / 1.0e9; digits = 1)) / $(round(total / 1.0e9; digits = 1)) GB ($pct%)"
     end
 end
 
@@ -61,7 +61,7 @@ function convert_pathmnist(npz, dir)
     mkpath(dir)
     # ZipArchives inflates through zlib at a couple of hundred MB/s; ZipFile.jl managed
     # about 1.4 MB/s here, which made the first run take hours.
-    open(npz) do f
+    return open(npz) do f
         zip = ZipReader(Mmap.mmap(f))
         buf = Vector{UInt8}(undef, 1 << 24)
         for name in zip_names(zip)                 # train_images.npy, train_labels.npy, ...

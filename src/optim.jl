@@ -13,7 +13,7 @@ ReactantNitro.no_decay(::PathMNIST, ks, x) = count(>(1), size(x)) <= 1
 ReactantNitro.schedules(e::PathMNIST) = (;
     eta = total -> OneCycle(
         total, Float32(e.max_lr); percent_start = e.pct_start,
-        startval = Float32(e.max_lr / 25), endval = Float32(e.max_lr / 25 / 1e4)
+        startval = Float32(e.max_lr / 25), endval = Float32(e.max_lr / 25 / 1.0e4)
     ),
 )
 

@@ -67,11 +67,13 @@ function nonagon(P, labels; path)
         scatter!(ax, [last(pts)]; color = colors[labels[n]], markersize = 4)
     end
     for k in 1:K
-        text!(ax, 1.12f0 * corner(k, K); text = CLASS_NAMES[k], align = (:center, :center),
-            color = colors[k], fontsize = 14)
+        text!(
+            ax, 1.12f0 * corner(k, K); text = CLASS_NAMES[k], align = (:center, :center),
+            color = colors[k], fontsize = 14
+        )
     end
     limits!(ax, -1.35, 1.35, -1.35, 1.35)
-    save(path, fig; px_per_unit = 1)
+    return save(path, fig; px_per_unit = 1)
 end
 
 function flows(P, tiles, labels; path)
@@ -83,12 +85,18 @@ function flows(P, tiles, labels; path)
     for n in 1:N
         img = tiles[:, :, :, n]
         pred = argmax(view(P, :, n, size(P, 3)))
-        ax_i = Axis(fig[n, 1]; aspect = DataAspect(), yreversed = true,
+        ax_i = Axis(
+            fig[n, 1]; aspect = DataAspect(), yreversed = true,
             title = "true: $(CLASS_NAMES[labels[n]])\npred: $(CLASS_NAMES[pred])", titlesize = 12,
-            titlecolor = pred == labels[n] ? :black : :firebrick)
+            titlecolor = pred == labels[n] ? :black : :firebrick
+        )
         hidedecorations!(ax_i); hidespines!(ax_i)
-        image!(ax_i, [RGBf(img[x, y, 1] / 255, img[x, y, 2] / 255, img[x, y, 3] / 255)
-                      for x in axes(img, 1), y in axes(img, 2)])
+        image!(
+            ax_i, [
+                RGBf(img[x, y, 1] / 255, img[x, y, 2] / 255, img[x, y, 3] / 255)
+                    for x in axes(img, 1), y in axes(img, 2)
+            ]
+        )
         ax = Axis(fig[n, 2]; xlabel = n == N ? "t" : "", ylabel = "p(class)", limits = (0, 1, 0, 1))
         lower = zeros(length(ts))
         for k in 1:K
@@ -99,7 +107,7 @@ function flows(P, tiles, labels; path)
         n == 1 && Legend(fig[1:N, 3], ax; framevisible = false)
     end
     colsize!(fig.layout, 1, Fixed(170))
-    save(path, fig; px_per_unit = 1)
+    return save(path, fig; px_per_unit = 1)
 end
 
 function main(run_dir, data_dir, out_dir; n_overview = 256, picks = nothing)

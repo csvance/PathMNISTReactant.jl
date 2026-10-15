@@ -29,18 +29,26 @@ function ReactantNitro.metrics(e::PathMNIST, out; label)
         conf[b] += c
         correct[b] += pred == l
     end
-    return (; val_loss = cross_entropy(e, out.logits, label) * n => n,
-              confusion = confusion => :sum,
-              calib = (; samples, conf, correct) => :sum,
-              kinetic = sum(out.energy) => n, motion = sum(out.motion) => n)
+    return (;
+        val_loss = cross_entropy(e, out.logits, label) * n => n,
+        confusion = confusion => :sum,
+        calib = (; samples, conf, correct) => :sum,
+        kinetic = sum(out.energy) => n,
+        motion = sum(out.motion) => n,
+    )
 end
 
 function ReactantNitro.finalize_metrics(e::PathMNIST, acc, split)
     c = acc.confusion
     recall = [c[k, k] / sum(c[k, :]) for k in axes(c, 1) if sum(c[k, :]) > 0]
     (; samples, conf, correct) = acc.calib
-    ece = sum(abs.(conf .- correct)) / sum(samples)
-    return (; acc.val_loss, macro_acc = sum(recall) / length(recall),
-              acc = sum(c[k, k] for k in axes(c, 1)) / sum(c), ece, acc.motion, acc.kinetic)
+    return (;
+        acc.val_loss,
+        macro_acc = sum(recall) / length(recall),            # mean per-class recall
+        acc = sum(c[k, k] for k in axes(c, 1)) / sum(c),
+        ece = sum(abs.(conf .- correct)) / sum(samples),
+        acc.motion,
+        acc.kinetic,
+    )
 end
 #endregion

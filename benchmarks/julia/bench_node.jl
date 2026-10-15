@@ -42,18 +42,28 @@ ReactantNitro.loss(::NODEBench, uT; y) = mean(abs2, uT .- y)
 const E0 = NODEBench()
 
 function batches(; pool = 8, rng = Xoshiro(0))
-    b = [(; u0 = randn(rng, Float32, E0.dims, E0.batch_size),
-            y = randn(rng, Float32, E0.dims, E0.batch_size)) for _ in 1:pool]
+    b = [
+        (;
+            u0 = randn(rng, Float32, E0.dims, E0.batch_size),
+            y = randn(rng, Float32, E0.dims, E0.batch_size),
+        ) for _ in 1:pool
+    ]
     return [b[mod1(i, pool)] for i in 1:STEPS]
 end
 
-make_nitro(logger) = Nitro(E0; data = (; train = batches()), max_epochs = 1, logger,
-    run_dir = mktempdir(), compile_options = compile_options())
+make_nitro(logger) = Nitro(
+    E0; data = (; train = batches()), max_epochs = 1, logger,
+    run_dir = mktempdir(), compile_options = compile_options()
+)
 
 for run in ("first", "cached")      # first pays the compile; cached reuses the programs
     r = timed_train(make_nitro, PRECISION)
-    emit((; stack = "reactantnitro", workload = "node-rk4", precision = PRECISION, run,
-          dims = E0.dims, hidden = E0.hidden, steps = E0.steps, batch_size = E0.batch_size,
-          params = Lux.parameterlength(r.nitro.model), first_step_s = r.first_step_s,
-          step_ms = r.step_ms, steps_per_s = round(MEASURE / r.dt; digits = 1), env_fields()...))
+    emit(
+        (;
+            stack = "reactantnitro", workload = "node-rk4", precision = PRECISION, run,
+            dims = E0.dims, hidden = E0.hidden, steps = E0.steps, batch_size = E0.batch_size,
+            params = Lux.parameterlength(r.nitro.model), first_step_s = r.first_step_s,
+            step_ms = r.step_ms, steps_per_s = round(MEASURE / r.dt; digits = 1), env_fields()...,
+        )
+    )
 end

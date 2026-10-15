@@ -5,9 +5,9 @@
     "PathMNIST tissue classes."
     num_classes::GraphConst{Int} = 9
     "Per-channel mean the pretrained weights expect (ImageNet)."
-    pixel_mean::GraphConst{NTuple{3,Float32}} = (0.485f0, 0.456f0, 0.406f0)
+    pixel_mean::GraphConst{NTuple{3, Float32}} = (0.485f0, 0.456f0, 0.406f0)
     "Per-channel standard deviation the pretrained weights expect (ImageNet)."
-    pixel_std::GraphConst{NTuple{3,Float32}} = (0.229f0, 0.224f0, 0.225f0)
+    pixel_std::GraphConst{NTuple{3, Float32}} = (0.229f0, 0.224f0, 0.225f0)
     "Augmented ODE state dimensions, predicted from the pooled features; the state also
     carries one logit dimension per class, starting at zero."
     aug_dims::GraphConst{Int} = 32
@@ -32,13 +32,13 @@
     max_epochs::Int = 5
 
     "Peak learning rate of the one-cycle schedule (RAdam)."
-    max_lr::Float64 = 1e-3
+    max_lr::Float64 = 1.0e-3
     "Learning rate of the NeuralODE vector field relative to the rest of the model."
     node_lr_ratio::Float64 = 1.0
     "Fraction of the run spent warming up to max_lr."
     pct_start::Float64 = 0.3
     "Decoupled weight decay; the NeuralODE vector field is not decayed."
-    weight_decay::Float64 = 1e-4
+    weight_decay::Float64 = 1.0e-4
 
     "Augmentation: random 90° rotations (k = 0:3)."
     aug_rot90::Bool = true

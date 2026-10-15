@@ -8,8 +8,8 @@ using PathMNISTReactant, ReactantNitro, Lux, Luximm, Statistics
 @experiment struct Vision
     variant::GraphConst{Symbol} = :convnextv2_tiny_fcmae_ft_in22k_in1k
     num_classes::GraphConst{Int} = 9
-    pixel_mean::GraphConst{NTuple{3,Float32}} = (0.485f0, 0.456f0, 0.406f0)
-    pixel_std::GraphConst{NTuple{3,Float32}} = (0.229f0, 0.224f0, 0.225f0)
+    pixel_mean::GraphConst{NTuple{3, Float32}} = (0.485f0, 0.456f0, 0.406f0)
+    pixel_std::GraphConst{NTuple{3, Float32}} = (0.229f0, 0.224f0, 0.225f0)
     "LayerNorm on the pooled features: ConvNeXt's timm head has one, BiT's does not."
     head_norm::GraphConst{Bool} = true
     data_dir::String = joinpath("data", "pathmnist_224")
@@ -47,4 +47,5 @@ function ReactantNitro.loss(e::Vision, logits; label)
 end
 
 ReactantNitro.build_data(e::Vision, dist) = ReactantNitro.build_data(
-    PathMNIST(; data_dir = e.data_dir, seed = e.seed, batch_size = e.batch_size), dist)
+    PathMNIST(; data_dir = e.data_dir, seed = e.seed, batch_size = e.batch_size), dist
+)

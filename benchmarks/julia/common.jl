@@ -54,8 +54,10 @@ end
 # head as a bare linear layer, so it takes no extra LayerNorm.
 const BACKBONES = Dict(
     "convnextv2" => (; variant = :convnextv2_tiny_fcmae_ft_in22k_in1k),
-    "bit" => (; variant = :resnetv2_50x1_bit_goog_in21k, pixel_mean = (0.5f0, 0.5f0, 0.5f0),
-              pixel_std = (0.5f0, 0.5f0, 0.5f0), head_norm = false),
+    "bit" => (;
+        variant = :resnetv2_50x1_bit_goog_in21k, pixel_mean = (0.5f0, 0.5f0, 0.5f0),
+        pixel_std = (0.5f0, 0.5f0, 0.5f0), head_norm = false,
+    ),
 )
 
 # default: Reactant's PrecisionConfig.DEFAULT, which lets XLA use TF32 on Ampere (the
@@ -82,9 +84,11 @@ function timed_train(make_nitro, precision)
     length(t) == STEPS || error("expected $STEPS timed steps, got $(length(t))")
     dt = t[STEPS] - t[WARMUP]
     wait = isempty(timer.data) ? nothing : get(first(timer.data), :data_wait_frac, nothing)
-    return (; nitro, dt, first_step_s = round(t[1] - t_start; digits = 2),
-            step_ms = round(1000 * dt / MEASURE; digits = 3),
-            data_wait_frac = wait === nothing ? nothing : round(wait; digits = 4))
+    return (;
+        nitro, dt, first_step_s = round(t[1] - t_start; digits = 2),
+        step_ms = round(1000 * dt / MEASURE; digits = 3),
+        data_wait_frac = wait === nothing ? nothing : round(wait; digits = 4),
+    )
 end
 
 # Compiler effort, the analog of PyTorch's compile modes, comes from two places:
@@ -101,18 +105,22 @@ const REACTANT_PRESETS = Dict(
     # `cudnn_hlo_optimize` (experimental) is left out: in Reactant 0.2.290 its "cudnn-hlo-opt"
     # pipeline fails on these models with "redefinition of symbol named
     # '__cudnn_fused_elementwise_dot_*'" (the neural ODE gradient, 2026-10-02).
-    "max" => Reactant.CompileOptions(; disable_slice_to_batch_passes = false,
-              disable_structured_tensors_detection_passes = false),
+    "max" => Reactant.CompileOptions(;
+        disable_slice_to_batch_passes = false,
+        disable_structured_tensors_detection_passes = false
+    ),
 )
 reactant_preset() = get(ENV, "BENCH_REACTANT", "default")
 compile_options() = REACTANT_PRESETS[reactant_preset()]
 
-env_fields() = (; threads = Threads.nthreads(:default),
-                config = get(ENV, "BENCH_CONFIG", "default"),
-                xla_flags = get(ENV, "XLA_FLAGS", ""), reactant_preset = reactant_preset(),
-                julia = string(VERSION),
-                reactantnitro = string(pkgversion(ReactantNitro)),
-                reactant = string(pkgversion(Reactant)))
+env_fields() = (;
+    threads = Threads.nthreads(:default),
+    config = get(ENV, "BENCH_CONFIG", "default"),
+    xla_flags = get(ENV, "XLA_FLAGS", ""), reactant_preset = reactant_preset(),
+    julia = string(VERSION),
+    reactantnitro = string(pkgversion(ReactantNitro)),
+    reactant = string(pkgversion(Reactant)),
+)
 
 _json(x::Nothing) = "null"
 _json(x::Bool) = string(x)

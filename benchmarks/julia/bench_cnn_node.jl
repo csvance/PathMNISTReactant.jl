@@ -20,8 +20,8 @@ const BACKBONE = get(ARGS, 2, "convnextv2")
 @experiment struct CNNNODE
     variant::GraphConst{Symbol} = :convnextv2_tiny_fcmae_ft_in22k_in1k
     num_classes::GraphConst{Int} = 9
-    pixel_mean::GraphConst{NTuple{3,Float32}} = (0.485f0, 0.456f0, 0.406f0)
-    pixel_std::GraphConst{NTuple{3,Float32}} = (0.229f0, 0.224f0, 0.225f0)
+    pixel_mean::GraphConst{NTuple{3, Float32}} = (0.485f0, 0.456f0, 0.406f0)
+    pixel_std::GraphConst{NTuple{3, Float32}} = (0.229f0, 0.224f0, 0.225f0)
     "LayerNorm on the pooled features: ConvNeXt's timm head has one, BiT's does not."
     head_norm::GraphConst{Bool} = true
     "ODE state dimension."
@@ -68,21 +68,31 @@ end
 const E0 = CNNNODE(; BACKBONES[BACKBONE]...)
 
 function prebuilt_batches(; pool = 32, rng = Xoshiro(0))
-    batches = [(; img = rand(rng, UInt8, 224, 224, 3, E0.batch_size),
-                  label = rand(rng, 1:9, E0.batch_size)) for _ in 1:pool]
-    return [batches[mod1(i, pool)] for i in 1:STEPS * E0.accum]
+    batches = [
+        (;
+            img = rand(rng, UInt8, 224, 224, 3, E0.batch_size),
+            label = rand(rng, 1:9, E0.batch_size),
+        ) for _ in 1:pool
+    ]
+    return [batches[mod1(i, pool)] for i in 1:(STEPS * E0.accum)]
 end
 
 make_nitro(logger) =
-    Nitro(E0; data = (; train = prebuilt_batches()), max_epochs = 1, logger, run_dir = mktempdir(),
-          compile_options = compile_options())
+    Nitro(
+    E0; data = (; train = prebuilt_batches()), max_epochs = 1, logger, run_dir = mktempdir(),
+    compile_options = compile_options()
+)
 
 for run in ("first", "cached")      # first pays the compile; cached reuses the programs
     r = timed_train(make_nitro, PRECISION)
-    emit((; stack = "reactantnitro", workload = "cnn-node-rk4", backbone = E0.variant,
-          node_steps = E0.node_steps, params = Lux.parameterlength(r.nitro.model),
-          mode = "prebuilt", precision = PRECISION, run, batch_size = E0.batch_size,
-          accum = E0.accum, first_step_s = r.first_step_s, step_ms = r.step_ms,
-          images_per_s = round(MEASURE * E0.accum * E0.batch_size / r.dt; digits = 1),
-          env_fields()...))
+    emit(
+        (;
+            stack = "reactantnitro", workload = "cnn-node-rk4", backbone = E0.variant,
+            node_steps = E0.node_steps, params = Lux.parameterlength(r.nitro.model),
+            mode = "prebuilt", precision = PRECISION, run, batch_size = E0.batch_size,
+            accum = E0.accum, first_step_s = r.first_step_s, step_ms = r.step_ms,
+            images_per_s = round(MEASURE * E0.accum * E0.batch_size / r.dt; digits = 1),
+            env_fields()...,
+        )
+    )
 end
