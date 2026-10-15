@@ -41,6 +41,7 @@ function MLUtils.getobs(d::PathMNISTSplit, idxs::AbstractVector{<:Integer})
     return (; img, label = d.labels[idxs])
 end
 
+#region build_data
 function ReactantNitro.build_data(e::PathMNIST, dist)
     ensure_dataset_mmapable(e)      # downloads and converts on first use
     # Training drops its short final batch (fixed program shape); eval keeps
@@ -51,3 +52,4 @@ function ReactantNitro.build_data(e::PathMNIST, dist)
     return (; train = loader("train", true), val = loader("val", false),
               test = loader("test", false))
 end
+#endregion

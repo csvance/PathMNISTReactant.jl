@@ -9,7 +9,7 @@
 # computation as the training step's gradient program, without the framework around it.
 
 include(joinpath(@__DIR__, "common.jl"))
-using PathMNISTReactant
+include(joinpath(@__DIR__, "vision.jl"))
 const Enzyme = Reactant.Enzyme
 
 const BACKBONE = ARGS[1]
@@ -20,7 +20,7 @@ lossf(p, m, s, x, y) = (oh = reshape(1:9, :, 1) .== reshape(y, 1, :);
 grad(p, m, s, x, y) = Enzyme.gradient(Enzyme.Reverse, lossf, p, Enzyme.Const(m), Enzyme.Const(s),
     Enzyme.Const(x), Enzyme.Const(y))[1]
 
-e = PathMNIST(; BACKBONES[BACKBONE]..., node_steps = 0)
+e = Vision(; BACKBONES[BACKBONE]...)
 model, ps, st = ReactantNitro.build_model(e, Xoshiro(0))
 st = Lux.trainmode(st)
 x = Reactant.to_rarray(rand(Xoshiro(1), UInt8, 224, 224, 3, e.batch_size))

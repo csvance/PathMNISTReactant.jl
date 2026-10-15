@@ -6,9 +6,8 @@
 # <data_dir> holds the converted .u8 files the training package writes.
 using ReactantServerClient, Mmap, Printf
 
-const TILE = (3, 224, 224)                 # bytes on disk are (C, W, H, N), NumPy's C order
-const CLASSES = ("adipose", "background", "debris", "lymphocytes", "mucus", "smooth muscle",
-    "normal mucosa", "stroma", "tumor epithelium")
+#region load_split
+const TILE = (3, 224, 224)                 # bytes on disk are (C, W, H, N)
 
 function load_split(dir, split)
     images = open(joinpath(dir, "$(split)_images.u8")) do io
@@ -17,6 +16,10 @@ function load_split(dir, split)
     labels = Int.(read(joinpath(dir, "$(split)_labels.u8"))) .+ 1   # 0-based on disk
     return images, labels
 end
+#endregion
+
+const CLASSES = ("adipose", "background", "debris", "lymphocytes", "mucus", "smooth muscle",
+    "normal mucosa", "stroma", "tumor epithelium")
 
 # The model takes (W, H, C, N), UInt8: the same permutation the training loader applies, and
 # no augmentation. Normalization happens inside the served program.
@@ -27,6 +30,7 @@ softmax(z) = (e = exp.(z .- maximum(z; dims = 1)); e ./ sum(e; dims = 1))
 # The fast path for a whole split: the client hands each chunk a slot in its staging pool,
 # we write the tiles straight into it, and the bytes go out raw (or through shared memory
 # when the server is on the same host), with several chunks in flight.
+#region tile_io
 struct TileIO <: AbstractInferenceIO
     images::Array{UInt8, 4}           # memory-mapped, (C, W, H, N)
     logits::Matrix{Float32}           # filled in as responses arrive
@@ -47,8 +51,9 @@ function ReactantServerClient.infer_decode_chunk!(io::TileIO, r::UnitRange, resp
     io.logits[:, r] = InferOutput("logits", response, Float32)
     return nothing
 end
+#endregion
 
-function main(data_dir, url = "grpc://127.0.0.1:28080"; batch = 16)
+function main(data_dir, url = "grpc://127.0.0.1:8001"; batch = 16)
     images, labels = load_split(data_dir, "test")
     N = length(labels)
     logits = zeros(Float32, length(CLASSES), N)

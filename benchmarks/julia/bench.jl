@@ -1,5 +1,5 @@
-# Training-step throughput for the vision side of the comparison: the package's
-# PathMNIST experiment (a Luximm backbone with a 9-class head).
+# Training-step throughput for the vision side of the comparison: a Luximm backbone with a
+# 9-class linear head (vision.jl).
 #
 #   CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=2 \
 #     julia -t 16,1 --project=benchmarks/julia benchmarks/julia/bench.jl \
@@ -12,12 +12,12 @@
 # Precision and backbones: see common.jl.
 
 include(joinpath(@__DIR__, "common.jl"))
-using PathMNISTReactant
+include(joinpath(@__DIR__, "vision.jl"))
 
 const MODE = get(ARGS, 1, "prebuilt")
 const PRECISION = get(ARGS, 2, "default")
 const BACKBONE = get(ARGS, 3, "convnextv2")
-const E0 = PathMNIST(; BACKBONES[BACKBONE]..., node_steps = 0)
+const E0 = Vision(; BACKBONES[BACKBONE]...)
 const MICRO = STEPS * E0.accum                  # micro-batches per epoch
 const TILE_BYTES = 3 * 224 * 224
 
@@ -44,7 +44,7 @@ function make_nitro(logger)
             compile_options = compile_options())
     MODE == "pipeline" || error("mode is prebuilt or pipeline, not $MODE")
     dir = synthetic_dataset(joinpath(run_dir, "data"), MICRO * E0.batch_size)
-    return Nitro(PathMNIST(; BACKBONES[BACKBONE]..., node_steps = 0, data_dir = dir); max_epochs = 1, logger, run_dir,
+    return Nitro(Vision(; BACKBONES[BACKBONE]..., data_dir = dir); max_epochs = 1, logger, run_dir,
             compile_options = compile_options())
 end
 

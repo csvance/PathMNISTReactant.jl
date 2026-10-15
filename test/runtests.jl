@@ -127,8 +127,11 @@ ensure_dataset_mmapable(PathMNIST(; data_url = URL, data_dir = DATA_DIR))
         logits = randn(Xoshiro(3), Float32, 9, 5)
         label = [1, 4, 9, 2, 2]
         onehot = Float32.((1:9) .== label')
-        @test ReactantNitro.loss(PathMNIST(), logits; label) ≈
+        out = (; logits, energy = fill(2.0f0, 1, 5))
+        @test ReactantNitro.loss(PathMNIST(), out; label) ≈
               CrossEntropyLoss(; logits = Val(true))(logits, onehot)
+        @test ReactantNitro.loss(PathMNIST(; kinetic_weight = 0.5f0), out; label) ≈
+              CrossEntropyLoss(; logits = Val(true))(logits, onehot) + 1
     end
 
     @testset "model" begin
@@ -144,10 +147,6 @@ ensure_dataset_mmapable(PathMNIST(; data_url = URL, data_dir = DATA_DIR))
         # which live in the state and start at zero, stay there: a uniform first prediction.
         @test all(iszero, y.energy) && all(iszero, y.motion) && all(iszero, y.logits)
 
-        # node_steps = 0, the vision benchmarks' model: one linear head, as before
-        linear, ps0, _ = ReactantNitro.build_model(PathMNIST(; node_steps = 0), Xoshiro(0))
-        @test Lux.parameterlength(ps0) == 27_873_417
-        @test keys(ps0.head) == (:weight, :bias)
     end
 
     @testset "rk4" begin
@@ -161,17 +160,21 @@ ensure_dataset_mmapable(PathMNIST(; data_url = URL, data_dir = DATA_DIR))
     @testset "metrics" begin
         e = PathMNIST(; num_classes = 3)
         logits = Float32[2 0 0; 0 2 0; 0 0 2]       # predicts classes 1, 2, 3
-        m = ReactantNitro.metrics(e, logits; label = [1, 2, 1])
-        @test m.confusion[1] == [1 0 1; 0 1 0; 0 0 0] && m.confusion[2] === nothing
-        @test m.val_loss[2] == 3
-        @test sum(m.calib[1][1, :]) == 3 && sum(m.calib[1][3, :]) == 2
-        # Reduced as Nitro would: the pair divided, the sums kept.
+        out = (; logits, energy = Float32[1 2 3], motion = Float32[0 1 2])
+        m = ReactantNitro.metrics(e, out; label = [1, 2, 1])
+        @test m.confusion == ([1 0 1; 0 1 0; 0 0 0] => :sum)
+        @test m.val_loss.second == 3
+        @test m.calib.second === :sum
+        @test sum(m.calib.first.samples) == 3 && sum(m.calib.first.correct) == 2
+        # Reduced as Nitro would: the count divided, the sums kept.
         f = ReactantNitro.finalize_metrics(e,
-            (; val_loss = m.val_loss[1] / 3, confusion = m.confusion[1], calib = m.calib[1]), :val)
+            (; val_loss = m.val_loss.first / 3, confusion = m.confusion.first, calib = m.calib.first,
+               motion = m.motion.first / 3, kinetic = m.kinetic.first / 3), :val)
         @test f.acc ≈ 2 / 3
         @test f.macro_acc ≈ (1 / 2 + 1) / 2                     # class 3 has no samples: left out
         conf = maximum(softmax(logits; dims = 1); dims = 1)[1]  # every prediction has this confidence
         @test f.ece ≈ abs(conf - 2 / 3) rtol = 1e-5
+        @test f.kinetic ≈ 2 && f.motion ≈ 1
     end
 
     @testset "optimizer" begin

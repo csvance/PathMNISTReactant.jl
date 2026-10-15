@@ -1,5 +1,7 @@
 # Sweep runner for the Kaimon session: trains each config in turn on the session's GPU, logs
 # best validation and test metrics to sweep.jsonl, and frees the handle between runs.
+# The swept options (HSV jitter, gradient clipping, label smoothing, the wavelet branch) were
+# removed from the package after the sweep; run this against commit 7684532.
 using PathMNISTReactant, ReactantNitro, Reactant, Lux, Random, Dates
 const DATA = "/cache/cvance@medicalmetrics.local/pathmnist-blog/data"
 const SWEEP_LOG = "/cache/cvance@medicalmetrics.local/pathmnist-blog/sweep.jsonl"

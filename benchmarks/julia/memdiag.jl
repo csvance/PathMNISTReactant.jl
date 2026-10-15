@@ -3,10 +3,11 @@
 #   CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=2 \
 #     julia +1.13.1 -t 16,1 --project=benchmarks/julia benchmarks/julia/memdiag.jl [accum]
 
-using PathMNISTReactant, ReactantNitro, Reactant, Random
+using ReactantNitro, Reactant, Random
+include(joinpath(@__DIR__, "vision.jl"))
 const ACCUM = parse(Int, get(ARGS, 1, "2"))
 const STEPS = 12
-e = PathMNIST(; accum = ACCUM, node_steps = 0)
+e = Vision(; accum = ACCUM)
 struct MemLog; rows::Vector{Any}; end
 function ReactantNitro.log_metrics!(m::MemLog, metrics; context = "train", step = 0, kwargs...)
     context == "train" && push!(m.rows, (step, Reactant.XLA.allocatorstats().bytes_in_use))
