@@ -112,14 +112,14 @@ end
 
 function main(run_dir, data_dir, out_dir; n_overview = 256, picks = nothing)
     e = PathMNIST(; data_dir)
-    nitro = Nitro(e; run_dir, weights = :latest => :best)
+    nitro = Nitro(e; run_dir, weights = :latest => :best, load_ema = true)
     test = PathMNISTSplit(e, "test")
     rng = Xoshiro(1)
     idx = picks === nothing ? randperm(rng, length(test.labels))[1:n_overview] : picks
     batch = getobs(test, idx)
     img = Reactant.to_rarray(batch.img)
-    traj = @compile class_trajectory(nitro.e, nitro.model, nitro.ps, nitro.st, img)
-    P = Array(traj(nitro.e, nitro.model, nitro.ps, nitro.st, img))
+    traj = @compile class_trajectory(nitro.e, nitro.model, ReactantNitro.eval_ps(nitro), nitro.st, img)
+    P = Array(traj(nitro.e, nitro.model, ReactantNitro.eval_ps(nitro), nitro.st, img))
     mkpath(out_dir)
     nonagon(P, batch.label; path = joinpath(out_dir, "nonagon.png"))
     return (; P, batch, idx)

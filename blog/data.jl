@@ -3,7 +3,7 @@
 # without a GPU. Run it in the session that trained, or after loading a checkpoint:
 #
 #   include("blog/data.jl")
-#   nitro = Nitro(PathMNIST(; data_dir); run_dir, weights = :latest => :best)   # or the trained handle
+#   nitro = Nitro(PathMNIST(; data_dir); run_dir, weights = :latest => :best, load_ema = true)   # or the trained handle
 #   blog_data(nitro, "blog/out")
 #
 # Writes to <out>:
@@ -42,8 +42,8 @@ function blog_data(nitro, out; n_traj = 256)
     idx = randperm(Xoshiro(1), length(test.labels))[1:n_traj]
     batch = getobs(test, idx)
     img = Reactant.to_rarray(batch.img)
-    traj = @compile class_trajectory(e, nitro.model, nitro.ps, nitro.st, img)
-    P = Array(traj(e, nitro.model, nitro.ps, nitro.st, img))
+    traj = @compile class_trajectory(e, nitro.model, ReactantNitro.eval_ps(nitro), nitro.st, img)
+    P = Array(traj(e, nitro.model, ReactantNitro.eval_ps(nitro), nitro.st, img))
     write(joinpath(out, "traj_P.f32"), Float32.(P))
     write(joinpath(out, "traj_picks.i64"), Int64.(idx))
     return (; test_metrics, out)

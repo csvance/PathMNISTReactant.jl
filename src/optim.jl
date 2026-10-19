@@ -17,5 +17,12 @@ ReactantNitro.schedules(e::PathMNIST) = (;
     ),
 )
 
-ReactantNitro.checkpointer(::PathMNIST) = TopKCheckpointer(; metric = :macro_acc, mode = :max)
+# Clip the global gradient norm loosely: it only catches the spikes that
+# occasionally make the warm-up diverge
+ReactantNitro.gradient_clip_norm(::PathMNIST) = 10.0f0
+
+# Validation, checkpoint selection and export read this average of the weights
+ReactantNitro.ema(::PathMNIST) = EMA(0.999)
+
+ReactantNitro.checkpointer(::PathMNIST) = Checkpointer(; metric = :macro_acc, mode = :max)
 #endregion

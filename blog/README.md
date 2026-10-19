@@ -13,7 +13,7 @@ In the session that trained (or after loading a checkpoint):
 ```julia
 using PathMNISTReactant, ReactantNitro
 include("blog/data.jl")
-nitro = Nitro(PathMNIST(; data_dir); run_dir, weights = :latest => :best)   # or the trained handle
+nitro = Nitro(PathMNIST(; data_dir); run_dir, weights = :latest => :best, load_ema = true)   # or the trained handle
 blog_data(nitro, "blog/out")
 ```
 
