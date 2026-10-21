@@ -166,7 +166,7 @@ def main():
     if a.channels_last:
         net = net.to(memory_format=torch.channels_last)
     if a.compile != "none":
-        net = torch.compile(net, mode=None if a.compile == "default" else a.compile)
+        net = torch.compile(net, mode=None if a.compile == "default" else a.compile, fullgraph=True)
 
     steps = a.warmup + a.measure
     data = torch.utils.data.DataLoader(

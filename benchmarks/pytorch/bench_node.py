@@ -51,7 +51,7 @@ def main():
     model = NODE(a.dims, a.hidden, a.steps).cuda()
     opt = torch.optim.RAdam(model.parameters(), lr=1e-3, foreach=True)
     run = model if a.compile == "none" else torch.compile(
-        model, mode=None if a.compile == "default" else a.compile)
+        model, mode=None if a.compile == "default" else a.compile, fullgraph=True)
     cudagraphs = uses_cudagraphs(a.compile)
     if cudagraphs:
         persist_grads(model)
