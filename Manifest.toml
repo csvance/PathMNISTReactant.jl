@@ -2,7 +2,7 @@
 
 julia_version = "1.12.7"
 manifest_format = "2.1"
-project_hash = "2ed81a665af0df9c4b4ce99467c8b85ae4fa7d6f"
+project_hash = "ae823c075ae69c81ba256ab17d20f78e1fc68b48"
 
 [[deps.ADTypes]]
 deps = ["PrecompileTools"]
@@ -1197,9 +1197,9 @@ version = "0.1.23"
 
 [[deps.ReactantNitro]]
 deps = ["Dates", "Enzyme", "Functors", "JLD2", "JSON", "LinearAlgebra", "Logging", "Lux", "Optimisers", "PrecompileTools", "Preferences", "PrettyTables", "Printf", "ProgressLogging", "ProgressMeter", "Random", "Reactant", "SHA", "Statistics", "Tables", "UUIDs"]
-git-tree-sha1 = "2d6a66e16e4105e9026c109072cff3118b189de4"
+git-tree-sha1 = "bca639c6f94acace486143742e44902e41575cf8"
 uuid = "641982cc-88f5-4d80-bec4-e68c6a8af0a5"
-version = "0.1.12"
+version = "0.2.0"
 
     [deps.ReactantNitro.extensions]
     ReactantNitroKaimonGateExt = "KaimonGate"

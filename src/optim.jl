@@ -24,5 +24,9 @@ ReactantNitro.gradient_clip_norm(::PathMNIST) = 10.0f0
 # Validation, checkpoint selection and export read this average of the weights
 ReactantNitro.ema(::PathMNIST) = EMA(0.999)
 
-ReactantNitro.checkpointer(::PathMNIST) = Checkpointer(; metric = :macro_acc, mode = :max)
+# The metric the run is judged by: checkpoint selection and `restore_best` follow it
+ReactantNitro.monitor(::PathMNIST) = :macro_acc => :max
+
+# Report the loss on validation and test from its own small device program
+ReactantNitro.eval_loss(::PathMNIST) = true
 #endregion

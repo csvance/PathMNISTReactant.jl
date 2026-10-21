@@ -13,7 +13,7 @@ for seed in 0:4
     t0 = time()
     nitro = Nitro(
         PathMNIST(; data_dir = DATA, seed); run_dir = "runs/pathmnist_s$seed", restore_best = true,
-        checkpointer = Checkpointer(; keep = Best(1), metric = :macro_acc, mode = :max)
+        checkpointer = Checkpointer(; keep = Best(1))
     )
     train!(nitro)
     wall = round(Int, time() - t0)

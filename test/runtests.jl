@@ -171,14 +171,14 @@ ensure_dataset_mmapable(PathMNIST(; data_url = URL, data_dir = DATA_DIR))
         out = (; logits, energy = Float32[1 2 3], motion = Float32[0 1 2])
         m = ReactantNitro.metrics(e, out; label = [1, 2, 1])
         @test m.confusion == ([1 0 1; 0 1 0; 0 0 0] => :sum)
-        @test m.val_loss.second == 3
+        @test !haskey(m, :val_loss)                         # the loss comes from eval_loss
         @test m.calib.second === :sum
         @test sum(m.calib.first.samples) == 3 && sum(m.calib.first.correct) == 2
         # Reduced as Nitro would: the count divided, the sums kept.
         f = ReactantNitro.finalize_metrics(
             e,
             (;
-                val_loss = m.val_loss.first / 3, confusion = m.confusion.first, calib = m.calib.first,
+                confusion = m.confusion.first, calib = m.calib.first,
                 motion = m.motion.first / 3, kinetic = m.kinetic.first / 3,
             ), :val
         )
