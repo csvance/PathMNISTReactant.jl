@@ -8,7 +8,7 @@
 #   data_dir          the converted dataset (test_images.u8, test_labels.u8)
 #   post_figures_dir  the post's figures/ directory; everything below is written there
 #
-# Writes: correct, incorrect (errors beside their two classes), reliability, confusion, nonagon, flows (.png and -dark.png),
+# Writes: correct, incorrect (each error beside its two classes), reliability, confusion, nonagon, flows (.png and -dark.png),
 # trajectories.json, confusion.json, hero/tiles.jpg and hero/tiles.json; and, into assets_dir,
 # numbers.md, a report of every number the post quotes from this model.
 using CairoMakie, Mmap, Random, Base64, Printf
@@ -105,34 +105,39 @@ function examples(k, n)
     return [idx[round(Int, j * length(idx) / (n + 1))] for j in 1:n]
 end
 
-# The most confident errors beside correct tiles of the class they were predicted as and of their
-# true class: one block of three rows per (true, predicted) pair among `errs`.
-function error_comparison(T, mode, errs; per = 4, px = 180)
-    pairs = unique((labels[i], pred[i]) for i in errs)
-    rows = []
-    for (t, p) in pairs
-        e = filter(i -> (labels[i], pred[i]) == (t, p), errs)[1:min(per, end)]
-        push!(
-            rows, ("Errors: $(CLASSES[t]) predicted as $(CLASSES[p])", e, true),
-            ("Correctly classified $(CLASSES[p]) (the predicted class)", examples(p, per), false),
-            ("Correctly classified $(CLASSES[t]) (the true class)", examples(t, per), false)
+# The most confident errors, one per row, each beside correctly classified tiles of the class it
+# was predicted as and of its true class, so every error sits next to both of its references.
+# Rows that share a class show different examples of it.
+function error_comparison(T, mode, errs; n = 6, per = 2, px = 150)
+    errs = errs[1:min(n, end)]
+    seen = Dict{Int, Int}()                       # examples of each class used so far
+    pool = Dict(k => examples(k, per * n) for k in unique(vcat(labels[errs], pred[errs])))
+    take(k) = (u = get(seen, k, 0); seen[k] = u + per; pool[k][(u + 1):(u + per)])
+    cols = 1 + 2 * per
+    fig = Figure()
+    Label(fig[0, 1:cols], "The most confident errors, beside the class predicted and the true class"; fontsize = 18, font = :bold)
+    Label(fig[1, 1], "Error"; fontsize = 14, font = :bold, color = T.err)
+    Label(fig[1, 2:(1 + per)], "Predicted class"; fontsize = 14, font = :bold)
+    Label(fig[1, (2 + per):cols], "True class"; fontsize = 14, font = :bold)
+    for (r, i) in enumerate(errs)
+        t, p = labels[i], pred[i]
+        tiles = vcat(
+            [(i, "$(CLASSES[t]) → $(CLASSES[p])\n$(round(100conf[i]; digits = 1))% confident", T.err)],
+            [(j, CLASSES[p], T.muted) for j in take(p)], [(j, CLASSES[t], T.muted) for j in take(t)]
         )
-    end
-    fig = Figure(size = (px * per, (px + 46) * length(rows) + 50))
-    Label(fig[0, 1:per], "The most confident errors, beside each class they fall between"; fontsize = 18, font = :bold)
-    for (r, (title, idxs, err)) in enumerate(rows)
-        g = fig[r, 1:per] = GridLayout()
-        Label(g[0, 1:per], title; fontsize = 13, font = :bold, halign = :left, color = err ? T.err : T.ink)
-        for (c, i) in enumerate(idxs)
+        for (c, (j, title, color)) in enumerate(tiles)
             ax = Axis(
-                g[1, c]; aspect = DataAspect(), yreversed = true, titlesize = 11,
-                title = err ? "$(round(100conf[i]; digits = 1))% $(CLASSES[pred[i]])" : "", titlecolor = T.muted
+                fig[r + 1, c]; width = px, height = px, yreversed = true, titlesize = 11, title,
+                titlecolor = color
             )
             hidedecorations!(ax); hidespines!(ax)
-            image!(ax, rgb(tile(i)))
+            image!(ax, rgb(tile(j)))
         end
-        rowgap!(g, 4)
     end
+    colgap!(fig.layout, 1, 24)                   # after the error column
+    colgap!(fig.layout, 1 + per, 24)              # between predicted and true examples
+    rowgap!(fig.layout, 10)
+    resize_to_layout!(fig)
     return save(fname("incorrect", mode), fig; px_per_unit = 1)
 end
 
