@@ -16,9 +16,6 @@ ReactantNitro = "641982cc-88f5-4d80-bec4-e68c6a8af0a5"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 ZipArchives = "49080126-0e18-4c2a-b176-c102e4b3760c"
 
-[sources]
-Luximm = {url = "https://github.com/csvance/Luximm.jl", rev = "4bda92a3ddbdf5ec59b9f1ea2c5e3d154991411a"}
-
 [compat]
 Downloads = "1"
 Lux = "1.31"

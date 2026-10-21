@@ -800,12 +800,14 @@ version = "1.15.9"
     cuDNN = "02a925ec-e4fe-4b08-9a7e-0d78e3d38ccd"
 
 [[deps.Luximm]]
-deps = ["Downloads", "HDF5", "LinearAlgebra", "Lux", "NNlib", "Random", "SafeTensors", "Statistics"]
-git-tree-sha1 = "066a021a0d0ed584e6543aa9e733e53ff612116f"
-repo-rev = "4bda92a3ddbdf5ec59b9f1ea2c5e3d154991411a"
-repo-url = "https://github.com/csvance/Luximm.jl"
+deps = ["Downloads", "EnzymeCore", "HDF5", "LinearAlgebra", "Lux", "NNlib", "Random", "SafeTensors", "Statistics"]
+git-tree-sha1 = "5cc662fcb8227cf6910cf372ee3e38c21615be37"
 uuid = "dd5ee4bc-caca-4b0e-b38f-82888d7e6786"
 version = "0.3.0"
+weakdeps = ["Reactant"]
+
+    [deps.Luximm.extensions]
+    LuximmReactantExt = "Reactant"
 
 [[deps.MLCore]]
 deps = ["DataAPI", "SimpleTraits", "Tables"]
