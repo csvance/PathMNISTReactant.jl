@@ -3,8 +3,8 @@
 # The swept options (HSV jitter, gradient clipping, label smoothing, the wavelet branch) were
 # removed from the package after the sweep; run this against commit 7684532.
 using PathMNISTReactant, ReactantNitro, Reactant, Lux, Random, Dates
-const DATA = "/cache/cvance@medicalmetrics.local/pathmnist-blog/data"
-const SWEEP_LOG = "/cache/cvance@medicalmetrics.local/pathmnist-blog/sweep.jsonl"
+const DATA = get(ENV, "PATHMNIST_DATA", joinpath("data", "pathmnist_224"))
+const SWEEP_LOG = joinpath(@__DIR__, "sweep.jsonl")
 const NOHSV = (; aug_hue = 0.0, aug_sat = 0.0, aug_val = 0.0)
 const BASE = (; NOHSV..., grad_clip = 0.0)        # the post's model
 best_val(n) = maximum(r.macro_acc for r in ReactantNitro.history(n).rows)
