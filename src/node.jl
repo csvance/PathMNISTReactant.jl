@@ -1,13 +1,19 @@
 #region rk4
 # Fixed-step RK4 over t in [0, 1]. Also returns each sample's kinetic energy,
 # ∫|f(u)|² dt, from the four stage evaluations.
+#
+# `@trace for` compiles the loop as one XLA while loop instead of unrolling all
+# 100 steps; unrolled, the gradient program took 29 minutes to compile on a cold
+# cache. `@trace for` writes the final value of `u` back into the array the
+# caller passed in, so the loop starts from a copy.
 function rk4(f, u, steps::Integer)
     T = eltype(u)
     dt = one(T) / T(steps)
     half, sixth = dt / T(2), dt / T(6)
     sq(k) = sum(abs2, k; dims = 1)
     energy = zero(sq(u))
-    for _ in 1:steps
+    u = copy(u)
+    @trace for _ in 1:steps
         k1 = f(u)
         k2 = f(u .+ half .* k1)
         k3 = f(u .+ half .* k2)
